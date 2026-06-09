@@ -59,16 +59,18 @@ const loadData = async () => {
   }
   loading.value = true;
   try {
-    // 使用列表接口查询，因为前端API生成工具没有生成单独的查询接口
+    // 使用列表接口查询
+    console.log("查询提交记录，ID:", submitId);
     const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost({
       current: 1,
       pageSize: 1,
-      id: Number(submitId),
+      id: submitId as any,
     });
-    if (res.code === 0 && res.data.records && res.data.records.length > 0) {
+    console.log("查询结果:", res);
+    if (res.code === 0 && res.data?.records && res.data.records.length > 0) {
       submitRecord.value = res.data.records[0];
     } else {
-      message.error("提交记录不存在或无权查看");
+      message.error("提交记录不存在或无权查看：" + (res.message || "未知错误"));
     }
   } catch (error) {
     console.error("加载提交记录失败:", error);
