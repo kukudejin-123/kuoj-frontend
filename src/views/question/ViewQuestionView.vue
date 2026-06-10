@@ -2,7 +2,7 @@
   <div id="viewQuestionView">
     <a-row :gutter="[24, 24]">
       <a-col :md="12" :xs="24">
-        <a-tabs default-active-key="question">
+        <a-tabs default-active-key="question" @tab-click="handleTabClick">
           <a-tab-pane key="question" title="题目">
             <a-card v-if="question" :title="question.title">
               <a-descriptions
@@ -46,6 +46,66 @@
                   </a-tag>
                 </a-space>
               </template>
+            </a-card>
+          </a-tab-pane>
+          <a-tab-pane key="mySubmit" title="我的提交">
+            <a-card title="我的提交记录">
+              <template #extra>
+                <a-button type="primary" size="small" @click="refreshMySubmits">
+                  刷新
+                </a-button>
+              </template>
+              <a-spin :loading="mySubmitsLoading" style="width: 100%;">
+                <div v-if="mySubmitsList.length === 0 && !mySubmitsLoading" style="text-align: center; padding: 40px; color: #999;">
+                  暂无提交记录，快去提交代码吧！
+                </div>
+                <a-table
+                  v-else
+                  :data="mySubmitsList"
+                  :pagination="mySubmitsPagination"
+                  @page-change="onMySubmitsPageChange"
+                  :bordered="{ cell: true }"
+                >
+                  <template #columns>
+                    <a-table-column title="提交时间" data-index="createTime" :width="170">
+                      <template #cell="{ record }">
+                        {{ formatTime(record.createTime) }}
+                      </template>
+                    </a-table-column>
+                    <a-table-column title="编程语言" data-index="language" :width="100">
+                      <template #cell="{ record }">
+                        <a-tag :color="getLanguageColor(record.language)">{{ record.language }}</a-tag>
+                      </template>
+                    </a-table-column>
+                    <a-table-column title="状态" :width="120">
+                      <template #cell="{ record }">
+                        <a-tag :color="getStatusColor(record.judgeInfo?.message)">
+                          {{ getStatusText(record.judgeInfo?.message) }}
+                        </a-tag>
+                      </template>
+                    </a-table-column>
+                    <a-table-column title="执行时间" :width="100">
+                      <template #cell="{ record }">
+                        <span v-if="record.judgeInfo?.time">{{ record.judgeInfo.time }} ms</span>
+                        <span v-else>-</span>
+                      </template>
+                    </a-table-column>
+                    <a-table-column title="内存占用" :width="100">
+                      <template #cell="{ record }">
+                        <span v-if="record.judgeInfo?.memory">{{ record.judgeInfo.memory }} KB</span>
+                        <span v-else>-</span>
+                      </template>
+                    </a-table-column>
+                    <a-table-column title="操作" :width="100" fixed="right">
+                      <template #cell="{ record }">
+                        <a-button type="text" size="small" @click="viewCode(record.id)">
+                          查看代码
+                        </a-button>
+                      </template>
+                    </a-table-column>
+                  </template>
+                </a-table>
+              </a-spin>
             </a-card>
           </a-tab-pane>
           <a-tab-pane key="comment" title="评论" disabled> 评论区</a-tab-pane>
@@ -124,8 +184,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watchEffect, withDefaults, defineProps, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
+import { onMounted, ref, watchEffect, withDefaults, defineProps, onUnmounted, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useStore } from "vuex";
 import message from "@arco-design/web-vue/es/message";
 import CodeEditor from "@/components/CodeEditor.vue";
 import MdViewer from "@/components/MdViewer.vue";
@@ -133,6 +194,7 @@ import {
   QuestionControllerService,
   QuestionSubmitAddRequest,
   QuestionVO,
+  QuestionSubmitQueryRequest,
 } from "../../../generated";
 
 interface Props {
@@ -145,6 +207,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const question = ref<QuestionVO>();
 const router = useRouter();
+const route = useRoute();
+const store = useStore();
 
 const loadData = async () => {
   const res = await QuestionControllerService.getQuestionVoByIdUsingGet(
@@ -320,6 +384,120 @@ const getStatusText = (status: string) => {
 const goToSubmitList = () => {
   resultModalVisible.value = false;
   router.push("/question_submit");
+};
+
+// ========== 我的提交记录相关 ==========
+const mySubmitsLoading = ref(false);
+const mySubmitsList = ref<any[]>([]);
+const mySubmitsPagination = computed(() => ({
+  current: mySubmitsCurrentPage.value,
+  pageSize: 10,
+  total: mySubmitsTotal.value,
+}));
+const mySubmitsCurrentPage = ref(1);
+const mySubmitsTotal = ref(0);
+
+/**
+ * 加载我的提交记录
+ */
+const loadMySubmits = async () => {
+  if (!question.value?.id) return;
+
+  // 检查是否登录
+  const loginUser = store.state.user.loginUser;
+  if (!loginUser || !loginUser.id) {
+    mySubmitsList.value = [];
+    return;
+  }
+
+  mySubmitsLoading.value = true;
+  try {
+    const params: QuestionSubmitQueryRequest = {
+      current: mySubmitsCurrentPage.value,
+      pageSize: 10,
+      questionId: question.value.id,
+      userId: loginUser.id,
+      sortField: "createTime",
+      sortOrder: "descend",
+    };
+
+    const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost(params);
+    if (res.code === 0) {
+      mySubmitsList.value = res.data?.records || [];
+      mySubmitsTotal.value = res.data?.total || 0;
+    } else {
+      message.error("加载失败：" + res.message);
+    }
+  } catch (error) {
+    message.error("加载提交记录失败");
+  } finally {
+    mySubmitsLoading.value = false;
+  }
+};
+
+/**
+ * 刷新我的提交记录
+ */
+const refreshMySubmits = () => {
+  mySubmitsCurrentPage.value = 1;
+  loadMySubmits();
+};
+
+/**
+ * 分页变化
+ */
+const onMySubmitsPageChange = (page: number) => {
+  mySubmitsCurrentPage.value = page;
+  loadMySubmits();
+};
+
+/**
+ * 查看代码详情
+ */
+const viewCode = (submitId: number) => {
+  router.push("/view/code/" + submitId);
+};
+
+/**
+ * Tab切换事件
+ */
+const handleTabClick = (key: string) => {
+  if (key === 'mySubmit') {
+    mySubmitsCurrentPage.value = 1;
+    loadMySubmits();
+  }
+};
+
+/**
+ * 格式化时间
+ */
+const formatTime = (time: string) => {
+  if (!time) return "-";
+  const date = new Date(time);
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
+/**
+ * 获取语言颜色
+ */
+const getLanguageColor = (language: string) => {
+  const colorMap: Record<string, string> = {
+    java: "orange",
+    cpp: "blue",
+    c: "gray",
+    python: "green",
+    go: "cyan",
+    javascript: "gold",
+    typescript: "arcoblue",
+  };
+  return colorMap[language?.toLowerCase()] || "gray";
 };
 
 /**

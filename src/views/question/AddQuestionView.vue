@@ -1,14 +1,14 @@
 <template>
   <div id="addQuestionView">
-    <h2>创建题目</h2>
-    <a-form :model="form" label-align="left">
-      <a-form-item field="title" label="标题">
+    <h2>{{ updatePage ? '更新题目' : '创建题目' }}</h2>
+    <a-form :model="form" layout="horizontal" @submit-success="doSubmit">
+      <a-form-item field="title" label="标题" required>
         <a-input v-model="form.title" placeholder="请输入标题" />
       </a-form-item>
       <a-form-item field="tags" label="标签">
         <a-input-tag v-model="form.tags" placeholder="请选择标签" allow-clear />
       </a-form-item>
-      <a-form-item field="content" label="题目内容">
+      <a-form-item field="content" label="题目内容" required>
         <MdEditor :value="form.content" :handle-change="onContentChange" />
       </a-form-item>
       <a-form-item field="answer" label="答案">
@@ -19,30 +19,39 @@
       </a-form-item>
       <a-form-item label="判题配置" :content-flex="false" :merge-props="false">
         <a-space direction="vertical" style="min-width: 480px">
-          <a-form-item field="judgeConfig.timeLimit" label="时间限制">
+          <a-form-item field="judgeConfig.timeLimit" label="时间限制" required>
             <a-input-number
               v-model="form.judgeConfig.timeLimit"
-              placeholder="请输入时间限制"
+              placeholder="请输入时间限制(ms)"
               mode="button"
-              min="0"
+              :min="100"
+              :max="60000"
               size="large"
             />
+            <template #extra>
+              <span style="color: #666;">范围: 100ms - 60000ms</span>
+            </template>
           </a-form-item>
-          <a-form-item field="judgeConfig.memoryLimit" label="内存限制">
+          <a-form-item field="judgeConfig.memoryLimit" label="内存限制" required>
             <a-input-number
               v-model="form.judgeConfig.memoryLimit"
-              placeholder="请输入内存限制"
+              placeholder="请输入内存限制(KB)"
               mode="button"
-              min="0"
+              :min="256"
+              :max="262144"
               size="large"
             />
+            <template #extra>
+              <span style="color: #666;">范围: 256KB - 256MB</span>
+            </template>
           </a-form-item>
           <a-form-item field="judgeConfig.stackLimit" label="堆栈限制">
             <a-input-number
               v-model="form.judgeConfig.stackLimit"
-              placeholder="请输入堆栈限制"
+              placeholder="请输入堆栈限制(KB)"
               mode="button"
-              min="0"
+              :min="0"
+              :max="65536"
               size="large"
             />
           </a-form-item>
@@ -62,6 +71,7 @@
         label="测试用例配置"
         :content-flex="false"
         :merge-props="false"
+        required
       >
         <a-form-item
           v-for="(judgeCaseItem, index) of form.judgeCase"
@@ -70,26 +80,36 @@
         >
           <a-space direction="vertical" style="min-width: 640px">
             <a-form-item
-              :field="`form.judgeCase[${index}].input`"
-              :label="`输入用例-${index}`"
+              :field="`judgeCase[${index}].input`"
+              :label="`输入用例-${index + 1}`"
               :key="index"
+              :required="true"
+              :rules="[{ required: true, message: '测试输入不能为空' }]"
             >
-              <a-input
+              <a-textarea
                 v-model="judgeCaseItem.input"
                 placeholder="请输入测试输入用例"
+                :auto-size="{ minRows: 2, maxRows: 6 }"
               />
             </a-form-item>
             <a-form-item
-              :field="`form.judgeCase[${index}].output`"
-              :label="`输出用例-${index}`"
-              :key="index"
+              :field="`judgeCase[${index}].output`"
+              :label="`输出用例-${index + 1}`"
+             :key="index"
+              :required="true"
+              :rules="[{ required: true, message: '测试输出不能为空' }]"
             >
-              <a-input
+              <a-textarea
                 v-model="judgeCaseItem.output"
                 placeholder="请输入测试输出用例"
+                :auto-size="{ minRows: 2, maxRows: 6 }"
               />
             </a-form-item>
-            <a-button status="danger" @click="handleDelete(index)">
+            <a-button
+              status="danger"
+              @click="handleDelete(index)"
+              :disabled="form.judgeCase.length <= 1"
+            >
               删除
             </a-button>
           </a-space>
@@ -102,9 +122,23 @@
       </a-form-item>
       <div style="margin-top: 16px" />
       <a-form-item>
-        <a-button type="primary" style="min-width: 200px" @click="doSubmit"
-          >提交
-        </a-button>
+        <a-space>
+          <a-button
+            type="primary"
+            style="min-width: 200px"
+            html-type="submit"
+            :loading="submitting"
+          >
+            {{ submitting ? '提交中...' : '提交' }}
+          </a-button>
+          <a-button
+            v-if="!updatePage"
+            style="min-width: 200px"
+            @click="resetForm"
+          >
+            重置
+          </a-button>
+        </a-space>
       </a-form-item>
     </a-form>
   </div>
@@ -115,15 +149,19 @@ import { onMounted, ref } from "vue";
 import MdEditor from "@/components/MdEditor.vue";
 import { QuestionControllerService } from "../../../generated";
 import message from "@arco-design/web-vue/es/message";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
+const router = useRouter();
 // 如果页面地址包含 update，视为更新页面
 const updatePage = route.path.includes("update");
+// 提交状态
+const submitting = ref(false);
 
-let form = ref({
+// 默认表单值
+const defaultForm = {
   title: "",
-  tags: [],
+  tags: [] as string[],
   answer: "",
   content: "",
   sourceCode: "",
@@ -139,7 +177,16 @@ let form = ref({
       output: "",
     },
   ],
-});
+};
+
+let form = ref({ ...defaultForm });
+
+/**
+ * 重置表单
+ */
+const resetForm = () => {
+  form.value = { ...defaultForm, tags: [], judgeCase: [{ input: "", output: "" }] };
+};
 
 /**
  * 根据题目 id 获取老的数据
@@ -193,27 +240,82 @@ onMounted(() => {
   loadData();
 });
 
+/**
+ * 表单验证
+ */
+const validateForm = (): string | null => {
+  if (!form.value.title || form.value.title.trim() === "") {
+    return "标题不能为空";
+  }
+  if (form.value.title.length > 100) {
+    return "标题长度不能超过100个字符";
+  }
+  if (!form.value.content || form.value.content.trim() === "") {
+    return "题目内容不能为空";
+  }
+  if (!form.value.judgeConfig.timeLimit || form.value.judgeConfig.timeLimit < 100) {
+    return "时间限制不能小于100ms";
+  }
+  if (!form.value.judgeConfig.memoryLimit || form.value.judgeConfig.memoryLimit < 256) {
+    return "内存限制不能小于256KB";
+  }
+  if (!form.value.judgeCase || form.value.judgeCase.length === 0) {
+    return "至少需要一个测试用例";
+  }
+  for (let i = 0; i < form.value.judgeCase.length; i++) {
+    const testCase = form.value.judgeCase[i];
+    if (!testCase.input || testCase.input.trim() === "") {
+      return `测试用例 ${i + 1} 的输入不能为空`;
+    }
+    if (!testCase.output || testCase.output.trim() === "") {
+      return `测试用例 ${i + 1} 的输出不能为空`;
+    }
+  }
+  return null;
+};
+
 const doSubmit = async () => {
-  console.log(form.value);
-  // 区分更新还是创建
-  if (updatePage) {
-    const res = await QuestionControllerService.updateQuestionUsingPost(
-      form.value
-    );
-    if (res.code === 0) {
-      message.success("更新成功");
+  // 表单验证
+  const validateError = validateForm();
+  if (validateError) {
+    message.error(validateError);
+    return;
+  }
+
+  // 防止重复提交
+  if (submitting.value) {
+    return;
+  }
+  submitting.value = true;
+
+  try {
+    // 区分更新还是创建
+    if (updatePage) {
+      const res = await QuestionControllerService.updateQuestionUsingPost(
+        form.value
+      );
+      if (res.code === 0) {
+        message.success("更新成功");
+        router.push("/manage/question");
+      } else {
+        message.error("更新失败，" + res.message);
+      }
     } else {
-      message.error("更新失败，" + res.message);
+      const res = await QuestionControllerService.addQuestionUsingPost(
+        form.value
+      );
+      if (res.code === 0) {
+        message.success("创建成功");
+        resetForm();
+        router.push("/manage/question");
+      } else {
+        message.error("创建失败，" + res.message);
+      }
     }
-  } else {
-    const res = await QuestionControllerService.addQuestionUsingPost(
-      form.value
-    );
-    if (res.code === 0) {
-      message.success("创建成功");
-    } else {
-      message.error("创建失败，" + res.message);
-    }
+  } catch (e: any) {
+    message.error("操作失败：" + e.message);
+  } finally {
+    submitting.value = false;
   }
 };
 

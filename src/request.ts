@@ -2,7 +2,7 @@ import axios from "axios";
 import { Message } from "@arco-design/web-vue";
 
 const myAxios = axios.create({
-  baseURL: "http://localhost:8802/api",
+  baseURL: process.env.VUE_APP_API_BASE_URL || "http://localhost:8802/api",
   timeout: 60000,
   withCredentials: true,
 });
@@ -22,7 +22,6 @@ myAxios.interceptors.request.use(
 // 全局响应拦截器
 myAxios.interceptors.response.use(
   function (response) {
-    console.log(response);
     // Any status code that lie within the range of 2xx cause this function to trigger
     // Do something with response data
     const { data } = response;
