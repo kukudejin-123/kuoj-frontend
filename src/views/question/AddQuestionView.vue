@@ -65,6 +65,53 @@
               <div><strong>循环输入：</strong>合并所有输入一次性执行，适用于 while 循环读取的题目</div>
             </div>
           </a-form-item>
+          <a-form-item field="judgeConfig.judgeMode" label="判题模式">
+            <a-select v-model="form.judgeConfig.judgeMode" placeholder="选择判题模式">
+              <a-option value="DEFAULT">默认（精确匹配）</a-option>
+              <a-option value="IGNORE_SPACE">忽略多余空格</a-option>
+              <a-option value="IGNORE_CASE">忽略大小写</a-option>
+              <a-option value="FLOAT">浮点数精度比较</a-option>
+              <a-option value="MULTI_ANSWER">多解判断</a-option>
+            </a-select>
+            <div style="margin-top: 8px; color: #666; font-size: 12px;">
+              <div v-if="form.judgeConfig.judgeMode === 'DEFAULT'"><strong>默认：</strong>输出必须与期望完全一致（去除首尾空格后）</div>
+              <div v-if="form.judgeConfig.judgeMode === 'IGNORE_SPACE'"><strong>忽略空格：</strong>多个空格合并为一个，适用于输出格式要求不严格的题目</div>
+              <div v-if="form.judgeConfig.judgeMode === 'IGNORE_CASE'"><strong>忽略大小写：</strong>适用于判断题（YES/Yes/yes 都算正确）</div>
+              <div v-if="form.judgeConfig.judgeMode === 'FLOAT'"><strong>浮点数：</strong>适用于计算结果为小数的题目，允许一定误差</div>
+              <div v-if="form.judgeConfig.judgeMode === 'MULTI_ANSWER'"><strong>多解判断：</strong>答案有多种可能，在下方配置可接受答案列表</div>
+            </div>
+          </a-form-item>
+          <a-form-item
+            v-if="form.judgeConfig.judgeMode === 'FLOAT'"
+            field="judgeConfig.floatPrecision"
+            label="精度容忍度"
+          >
+            <a-input-number
+              v-model="form.judgeConfig.floatPrecision"
+              placeholder="精度容忍度"
+              :precision="10"
+              :min="1e-10"
+              :max="1"
+              size="large"
+            />
+            <div style="margin-top: 4px; color: #666; font-size: 12px;">
+              两个浮点数差的绝对值小于此值即认为相等，默认 0.000001 (1e-6)
+            </div>
+          </a-form-item>
+          <a-form-item
+            v-if="form.judgeConfig.judgeMode === 'MULTI_ANSWER'"
+            field="judgeConfig.acceptableOutputs"
+            label="可接受答案"
+          >
+            <a-input-tag
+              v-model="form.judgeConfig.acceptableOutputs"
+              placeholder="输入答案后按回车添加"
+              allow-clear
+            />
+            <div style="margin-top: 4px; color: #666; font-size: 12px;">
+              用户输出在此列表中即算正确，例如判断题可添加：YES、Yes、yes、Y、y
+            </div>
+          </a-form-item>
         </a-space>
       </a-form-item>
       <a-form-item
@@ -170,6 +217,9 @@ const defaultForm = {
     stackLimit: 1000,
     timeLimit: 1000,
     inputMode: "single",
+    judgeMode: "DEFAULT",
+    floatPrecision: 1e-6,
+    acceptableOutputs: [] as string[],
   },
   judgeCase: [
     {
@@ -185,7 +235,15 @@ let form = ref({ ...defaultForm });
  * 重置表单
  */
 const resetForm = () => {
-  form.value = { ...defaultForm, tags: [], judgeCase: [{ input: "", output: "" }] };
+  form.value = {
+    ...defaultForm,
+    tags: [],
+    judgeCase: [{ input: "", output: "" }],
+    judgeConfig: {
+      ...defaultForm.judgeConfig,
+      acceptableOutputs: [],
+    },
+  };
 };
 
 /**
@@ -218,12 +276,27 @@ const loadData = async () => {
         stackLimit: 1000,
         timeLimit: 1000,
         inputMode: "single",
+        judgeMode: "DEFAULT",
+        floatPrecision: 1e-6,
+        acceptableOutputs: [],
       };
     } else {
       form.value.judgeConfig = JSON.parse(form.value.judgeConfig as any);
       // 兼容旧数据，没有 inputMode 的默认为 single
       if (!form.value.judgeConfig.inputMode) {
         form.value.judgeConfig.inputMode = "single";
+      }
+      // 兼容旧数据，没有 judgeMode 的默认为 DEFAULT
+      if (!form.value.judgeConfig.judgeMode) {
+        form.value.judgeConfig.judgeMode = "DEFAULT";
+      }
+      // 兼容旧数据，没有 floatPrecision 的默认为 1e-6
+      if (!form.value.judgeConfig.floatPrecision) {
+        form.value.judgeConfig.floatPrecision = 1e-6;
+      }
+      // 兼容旧数据，没有 acceptableOutputs 的默认为空数组
+      if (!form.value.judgeConfig.acceptableOutputs) {
+        form.value.judgeConfig.acceptableOutputs = [];
       }
     }
     if (!form.value.tags) {

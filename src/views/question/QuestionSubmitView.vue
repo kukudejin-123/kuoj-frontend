@@ -34,20 +34,17 @@
         total,
       }"
       @page-change="onPageChange"
+      :scroll="{ x: 1000 }"
     >
-      <template #code="{ record }">
-        <pre
-          v-if="record.code"
-          style="
-            max-width: 300px;
-            max-height: 150px;
-            overflow: auto;
-            background: #f5f5f5;
-            padding: 8px;
-            border-radius: 4px;
-          "
-        ><code>{{ record.code }}</code></pre>
-        <span v-else style="color: #999">代码已隐藏</span>
+      <template #questionTitle="{ record }">
+        <a-link @click="toQuestionPage(record.questionVO)">
+          {{ record.questionVO?.title || '-' }}
+        </a-link>
+      </template>
+      <template #language="{ record }">
+        <a-tag :color="getLanguageColor(record.language)">
+          {{ record.language }}
+        </a-tag>
       </template>
       <template #judgeInfo="{ record }">
         <div v-if="record.judgeInfo">
@@ -59,12 +56,15 @@
             <span v-if="record.judgeInfo.memory" style="margin-left: 8px;">内存: {{ record.judgeInfo.memory }}KB</span>
           </div>
         </div>
+        <span v-else style="color: #999">-</span>
       </template>
-      <!-- 判题状态 -->
       <template #status="{ record }">
         <a-tag :color="getSubmitStatusColor(record.status)">
           {{ formatStatus(record.status) }}
         </a-tag>
+      </template>
+      <template #userName="{ record }">
+        {{ record.userVO?.userName || '-' }}
       </template>
       <template #createTime="{ record }">
         {{ moment(record.createTime).format("YYYY-MM-DD HH:mm") }}
@@ -132,32 +132,40 @@ onMounted(() => {
 
 const columns = [
   {
-    title: "题目标题",
-    dataIndex: "questionVO.title",
+    title: "题目",
+    slotName: "questionTitle",
+    width: 200,
   },
   {
     title: "编程语言",
-    dataIndex: "language",
+    slotName: "language",
+    width: 100,
   },
   {
     title: "判题信息",
     slotName: "judgeInfo",
+    width: 200,
   },
   {
-    title: "判题状态",
+    title: "状态",
     slotName: "status",
+    width: 100,
   },
   {
     title: "提交者",
-    dataIndex: "userVO.userName",
+    slotName: "userName",
+    width: 120,
   },
   {
-    title: "创建时间",
+    title: "提交时间",
     slotName: "createTime",
+    width: 150,
   },
   {
     title: "操作",
     slotName: "optional",
+    width: 100,
+    fixed: "right",
   },
 ];
 
@@ -275,6 +283,21 @@ const formatStatus = (status: string) => {
     default:
       return "未知状态";
   }
+};
+
+/**
+ * 获取语言颜色
+ */
+const getLanguageColor = (language: string) => {
+  const colorMap: Record<string, string> = {
+    java: "orange",
+    cpp: "blue",
+    c: "gray",
+    python: "green",
+    go: "cyan",
+    javascript: "gold",
+  };
+  return colorMap[language?.toLowerCase()] || "gray";
 };
 </script>
 
