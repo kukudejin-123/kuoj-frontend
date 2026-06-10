@@ -46,6 +46,16 @@
               size="large"
             />
           </a-form-item>
+          <a-form-item field="judgeConfig.inputMode" label="输入模式">
+            <a-radio-group v-model="form.judgeConfig.inputMode">
+              <a-radio value="single">单次输入</a-radio>
+              <a-radio value="loop">循环输入</a-radio>
+            </a-radio-group>
+            <div style="margin-top: 8px; color: #666; font-size: 12px;">
+              <div><strong>单次输入：</strong>每个测试用例独立执行，适用于单组输入的题目</div>
+              <div><strong>循环输入：</strong>合并所有输入一次性执行，适用于 while 循环读取的题目</div>
+            </div>
+          </a-form-item>
         </a-space>
       </a-form-item>
       <a-form-item
@@ -116,10 +126,12 @@ let form = ref({
   tags: [],
   answer: "",
   content: "",
+  sourceCode: "",
   judgeConfig: {
     memoryLimit: 1000,
     stackLimit: 1000,
     timeLimit: 1000,
+    inputMode: "single",
   },
   judgeCase: [
     {
@@ -158,9 +170,14 @@ const loadData = async () => {
         memoryLimit: 1000,
         stackLimit: 1000,
         timeLimit: 1000,
+        inputMode: "single",
       };
     } else {
       form.value.judgeConfig = JSON.parse(form.value.judgeConfig as any);
+      // 兼容旧数据，没有 inputMode 的默认为 single
+      if (!form.value.judgeConfig.inputMode) {
+        form.value.judgeConfig.inputMode = "single";
+      }
     }
     if (!form.value.tags) {
       form.value.tags = [];

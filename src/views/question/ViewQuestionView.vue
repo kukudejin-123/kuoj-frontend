@@ -18,7 +18,23 @@
                 <a-descriptions-item label="堆栈限制">
                   {{ question.judgeConfig.stackLimit ?? 0 }}
                 </a-descriptions-item>
+                <a-descriptions-item label="输入模式">
+                  <a-tag :color="question.judgeConfig.inputMode === 'loop' ? 'orange' : 'green'">
+                    {{ question.judgeConfig.inputMode === 'loop' ? '循环输入' : '单次输入' }}
+                  </a-tag>
+                </a-descriptions-item>
               </a-descriptions>
+              <a-alert
+                v-if="question.judgeConfig.inputMode === 'loop'"
+                type="warning"
+                style="margin-top: 16px;"
+              >
+                <template #title>循环输入模式</template>
+                此题需要使用循环读取输入，例如：<br/>
+                Java: <code>while (scanner.hasNextInt()) { ... }</code><br/>
+                C++: <code>while (cin >> a >> b) { ... }</code><br/>
+                Python: <code>for line in sys.stdin: ...</code>
+              </a-alert>
               <MdViewer :value="question.content || ''" />
               <template #extra>
                 <a-space wrap>
