@@ -10,6 +10,7 @@ export type QuestionVO = {
     acceptedNum?: number;
     content?: string;
     createTime?: string;
+    difficulty?: number;
     favourNum?: number;
     id?: number;
     judgeConfig?: JudgeConfig;

@@ -2,13 +2,25 @@
   <div id="questionsView">
     <a-form :model="searchParams" layout="inline">
       <a-form-item field="title" label="名称" style="min-width: 240px">
-        <a-input v-model="searchParams.title" placeholder="请输入名称" />
+        <a-input v-model="searchParams.title" placeholder="请输入名称" allow-clear />
       </a-form-item>
-      <a-form-item field="tags" label="标签" style="min-width: 240px">
-        <a-input-tag v-model="searchParams.tags" placeholder="请输入标签" />
+      <a-form-item field="difficulty" label="难度" style="min-width: 160px">
+        <a-select v-model="searchParams.difficulty" placeholder="请选择难度" allow-clear>
+          <a-option :value="0">简单</a-option>
+          <a-option :value="1">中等</a-option>
+          <a-option :value="2">困难</a-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item field="tags" label="标签" style="min-width: 200px">
+        <a-select v-model="searchParams.tagInput" placeholder="请选择标签" allow-clear allow-search>
+          <a-option v-for="tag in allTags" :key="tag" :value="tag">{{ tag }}</a-option>
+        </a-select>
       </a-form-item>
       <a-form-item>
-        <a-button type="primary" @click="doSubmit">提交</a-button>
+        <a-space>
+          <a-button type="primary" @click="doSubmit">搜索</a-button>
+          <a-button @click="doClear">清空</a-button>
+        </a-space>
       </a-form-item>
     </a-form>
     <a-divider size="0" />
@@ -24,9 +36,15 @@
       }"
       @page-change="onPageChange"
     >
+      <template #difficulty="{ record }">
+        <a-tag v-if="record.difficulty === 0" color="green">简单</a-tag>
+        <a-tag v-else-if="record.difficulty === 1" color="orange">中等</a-tag>
+        <a-tag v-else-if="record.difficulty === 2" color="red">困难</a-tag>
+        <a-tag v-else color="gray">未知</a-tag>
+      </template>
       <template #tags="{ record }">
         <a-space wrap>
-          <a-tag v-for="(tag, index) of record.tags" :key="index" color="green"
+          <a-tag v-for="(tag, index) of record.tags" :key="index" color="arcoblue"
             >{{ tag }}
           </a-tag>
         </a-space>
@@ -49,15 +67,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watchEffect } from "vue";
+import { onMounted, ref } from "vue";
 import {
-  Page_Question_,
   Question,
-  QuestionControllerService,
-  QuestionQueryRequest,
+  QuestionControllerService as GeneratedQuestionControllerService,
 } from "../../../generated";
+import { getAllTagsUsingGet, listQuestionVoByPageUsingPost } from "@/api/questionController";
 import message from "@arco-design/web-vue/es/message";
-import * as querystring from "querystring";
 import { useRouter } from "vue-router";
 import moment from "moment";
 
@@ -65,57 +81,86 @@ const tableRef = ref();
 
 const dataList = ref([]);
 const total = ref(0);
-const searchParams = ref<QuestionQueryRequest>({
+// 所有标签列表
+const allTags = ref<string[]>([]);
+// 搜索参数
+const searchParams = ref<any>({
   title: "",
-  tags: [],
+  tagInput: "",
+  difficulty: undefined,
   pageSize: 8,
   current: 1,
 });
 
-const rate = ref(0);
-
-// 计算通过率
+// 计算通过率（返回 0-1 之间的值，保留两位小数）
 const calculateRate = (record: any) => {
   if (!record.submitNum || record.submitNum === 0) return 0;
-  return Math.round((record.acceptedNum / record.submitNum) * 100);
+  const rate = record.acceptedNum / record.submitNum;
+  return Math.round(rate * 100) / 100;
 };
 
-const loadData = async () => {
-  const res = await QuestionControllerService.listQuestionVoByPageUsingPost(
-    searchParams.value
-  );
-  if (res.code === 0) {
-    dataList.value = res.data.records;
-    total.value = res.data.total;
-  } else {
-    message.error("加载失败，" + res.message);
+// 加载所有标签
+const loadAllTags = async () => {
+  try {
+    console.log("开始加载标签...");
+    const res = await getAllTagsUsingGet();
+    console.log("标签接口返回:", res);
+    // 兼容两种返回格式
+    if (res.data?.code === 0 || res.code === 0) {
+      const tagsData = res.data?.data || res.data || [];
+      allTags.value = Array.isArray(tagsData) ? tagsData : [];
+      console.log("加载到的标签列表:", allTags.value);
+    } else {
+      console.error("加载标签失败:", res.data?.message || res.message);
+    }
+  } catch (e) {
+    console.error("加载标签异常", e);
   }
 };
 
-/**
- * 监听 searchParams 变量，改变时触发页面的重新加载
- */
-watchEffect(() => {
-  loadData();
-});
+const loadData = async () => {
+  // 构建查询参数
+  const params: any = {
+    title: searchParams.value.title,
+    pageSize: searchParams.value.pageSize,
+    current: searchParams.value.current,
+  };
+  // 添加难度筛选
+  if (searchParams.value.difficulty !== undefined && searchParams.value.difficulty !== null) {
+    params.difficulty = searchParams.value.difficulty;
+  }
+  // 添加标签筛选
+  if (searchParams.value.tagInput) {
+    params.tags = [searchParams.value.tagInput];
+  }
+
+  const res = await listQuestionVoByPageUsingPost(params);
+  // 兼容两种返回格式
+  const resData = res.data || res;
+  if (resData.code === 0) {
+    dataList.value = resData.data?.records || resData.records || [];
+    total.value = resData.data?.total || resData.total || 0;
+  } else {
+    message.error("加载失败，" + (resData.message || ""));
+  }
+};
 
 /**
  * 页面加载时，请求数据
  */
 onMounted(() => {
+  loadAllTags();
   loadData();
 });
 
-// {id: "1", title: "A+ D", content: "新的题目内容", tags: "["二叉树"]", answer: "新的答案", submitNum: 0,…}
-
 const columns = [
-  // {
-  //   title: "题号",
-  //   dataIndex: "id",
-  // },
   {
     title: "题目名称",
     dataIndex: "title",
+  },
+  {
+    title: "难度",
+    slotName: "difficulty",
   },
   {
     title: "标签",
@@ -139,6 +184,7 @@ const onPageChange = (page: number) => {
     ...searchParams.value,
     current: page,
   };
+  loadData();
 };
 
 const router = useRouter();
@@ -157,11 +203,25 @@ const toQuestionPage = (question: Question) => {
  * 确认搜索，重新加载数据
  */
 const doSubmit = () => {
-  // 这里需要重置搜索页号
   searchParams.value = {
     ...searchParams.value,
     current: 1,
   };
+  loadData();
+};
+
+/**
+ * 清空搜索条件
+ */
+const doClear = () => {
+  searchParams.value = {
+    title: "",
+    tagInput: "",
+    difficulty: undefined,
+    pageSize: 8,
+    current: 1,
+  };
+  loadData();
 };
 </script>
 

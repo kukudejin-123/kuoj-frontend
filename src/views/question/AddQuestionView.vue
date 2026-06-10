@@ -5,6 +5,13 @@
       <a-form-item field="title" label="标题" required>
         <a-input v-model="form.title" placeholder="请输入标题" />
       </a-form-item>
+      <a-form-item field="difficulty" label="难度" required>
+        <a-radio-group v-model="form.difficulty">
+          <a-radio :value="0">简单</a-radio>
+          <a-radio :value="1">中等</a-radio>
+          <a-radio :value="2">困难</a-radio>
+        </a-radio-group>
+      </a-form-item>
       <a-form-item field="tags" label="标签">
         <a-input-tag v-model="form.tags" placeholder="请选择标签" allow-clear />
       </a-form-item>
@@ -208,6 +215,7 @@ const submitting = ref(false);
 // 默认表单值
 const defaultForm = {
   title: "",
+  difficulty: 0,
   tags: [] as string[],
   answer: "",
   content: "",
@@ -237,6 +245,7 @@ let form = ref({ ...defaultForm });
 const resetForm = () => {
   form.value = {
     ...defaultForm,
+    difficulty: 0,
     tags: [],
     judgeCase: [{ input: "", output: "" }],
     judgeConfig: {

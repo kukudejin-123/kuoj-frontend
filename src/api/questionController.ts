@@ -97,7 +97,7 @@ export async function listQuestionVoByPageUsingPost(
   body: API.QuestionQueryRequest,
   options?: { [key: string]: any },
 ) {
-  return request<API.BaseResponsePageQuestionVO_>('/api/question/list/page/vo', {
+  return request<API.BaseResponsePageQuestionVO_>('/question/list/page/vo', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -133,6 +133,16 @@ export async function updateQuestionUsingPost(
       'Content-Type': 'application/json',
     },
     data: body,
+    ...(options || {}),
+  });
+}
+
+/** getAllTags GET /api/question/tags */
+export async function getAllTagsUsingGet(
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseListString_>('/question/tags', {
+    method: 'GET',
     ...(options || {}),
   });
 }
