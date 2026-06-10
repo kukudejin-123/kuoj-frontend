@@ -51,7 +51,9 @@
               <a-option>java</a-option>
               <a-option>cpp</a-option>
               <a-option>go</a-option>
-              <a-option>html</a-option>
+              <a-option>python</a-option>
+              <a-option>javascript</a-option>
+              <a-option>c</a-option>
             </a-select>
           </a-form-item>
         </a-form>
@@ -61,16 +63,52 @@
           :handle-change="changeCode"
         />
         <a-divider size="0" />
-        <a-button type="primary" style="min-width: 200px" @click="doSubmit">
-          提交代码
+        <a-button
+          type="primary"
+          style="min-width: 200px"
+          @click="doSubmit"
+          :loading="isSubmitting"
+        >
+          {{ isSubmitting ? '提交中...' : '提交代码' }}
         </a-button>
       </a-col>
     </a-row>
+
+    <!-- 判题结果弹窗 -->
+    <a-modal
+      v-model:visible="resultModalVisible"
+      title="判题结果"
+      :footer="false"
+      :closable="!isPolling"
+    >
+      <div v-if="isPolling" style="text-align: center; padding: 20px;">
+        <a-spin size="large" />
+        <p style="margin-top: 16px;">正在判题中，请稍候...</p>
+      </div>
+      <div v-else-if="judgeResult">
+        <a-descriptions :column="1" bordered>
+          <a-descriptions-item label="判题状态">
+            <a-tag :color="getStatusColor(judgeResult.judgeInfo?.message)">
+              {{ getStatusText(judgeResult.judgeInfo?.message) }}
+            </a-tag>
+          </a-descriptions-item>
+          <a-descriptions-item label="执行时间" v-if="judgeResult.judgeInfo?.time">
+            {{ judgeResult.judgeInfo.time }} ms
+          </a-descriptions-item>
+          <a-descriptions-item label="内存占用" v-if="judgeResult.judgeInfo?.memory">
+            {{ judgeResult.judgeInfo.memory }} KB
+          </a-descriptions-item>
+        </a-descriptions>
+        <div style="margin-top: 16px; text-align: right;">
+          <a-button type="primary" @click="goToSubmitList">查看提交记录</a-button>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watchEffect, withDefaults, defineProps } from "vue";
+import { onMounted, ref, watchEffect, withDefaults, defineProps, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import message from "@arco-design/web-vue/es/message";
 import CodeEditor from "@/components/CodeEditor.vue";
@@ -94,11 +132,10 @@ const router = useRouter();
 
 const loadData = async () => {
   const res = await QuestionControllerService.getQuestionVoByIdUsingGet(
-    props.id as any
+    props.id as any,
   );
   if (res.code === 0) {
-    console.log('res.data',res.data);
-    
+    console.log("res.data", res.data);
     question.value = res.data;
   } else {
     message.error("加载失败，" + res.message);
@@ -110,11 +147,16 @@ const form = ref<QuestionSubmitAddRequest>({
   code: "",
 });
 
+// 提交相关状态
+const isSubmitting = ref(false);
+const resultModalVisible = ref(false);
+const isPolling = ref(false);
+const judgeResult = ref<any>(null);
+let pollingTimer: any = null;
+
 /**
  * 提交代码
  */
-const isSubmitting = ref(false);
-
 const doSubmit = async () => {
   if (!question.value?.id) {
     return;
@@ -123,21 +165,145 @@ const doSubmit = async () => {
     message.warning("正在提交中，请勿重复点击");
     return;
   }
+
+  if (!form.value.code || form.value.code.trim() === '') {
+    message.error("请输入代码");
+    return;
+  }
+
   isSubmitting.value = true;
+  resultModalVisible.value = true;
+  isPolling.value = true;
+  judgeResult.value = null;
+
   try {
     const res = await QuestionControllerService.doQuestionSubmitUsingPost({
       ...form.value,
       questionId: question.value.id,
     });
     if (res.code === 0) {
-      message.success("提交成功");
-      router.push("/question_submit");
+      message.success("提交成功，正在判题...");
+      // 开始轮询判题结果
+      startPolling(res.data);
     } else {
       message.error("提交失败," + res.message);
+      resultModalVisible.value = false;
+      isPolling.value = false;
     }
+  } catch (error) {
+    message.error("提交失败");
+    resultModalVisible.value = false;
+    isPolling.value = false;
   } finally {
     isSubmitting.value = false;
   }
+};
+
+/**
+ * 开始轮询判题结果
+ */
+const startPolling = (submitId: number) => {
+  let pollCount = 0;
+  const maxPollCount = 60; // 最多轮询60次（约30秒）
+
+  const poll = async () => {
+    pollCount++;
+    if (pollCount > maxPollCount) {
+      stopPolling();
+      message.warning("判题超时，请稍后刷新查看结果");
+      resultModalVisible.value = false;
+      return;
+    }
+
+    try {
+      const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost({
+        current: 1,
+        pageSize: 1,
+        id: submitId as any,
+      });
+
+      if (res.code === 0 && res.data?.records && res.data.records.length > 0) {
+        const record = res.data.records[0];
+        // 状态：0-待判题，1-判题中，2-成功，3-失败
+        if (record.status === '2' || record.status === '3') {
+          // 判题完成
+          judgeResult.value = record;
+          isPolling.value = false;
+          stopPolling();
+        } else {
+          // 继续轮询
+          pollingTimer = setTimeout(poll, 500);
+        }
+      } else {
+        // 继续轮询
+        pollingTimer = setTimeout(poll, 500);
+      }
+    } catch (error) {
+      console.error("轮询失败:", error);
+      pollingTimer = setTimeout(poll, 500);
+    }
+  };
+
+  poll();
+};
+
+/**
+ * 停止轮询
+ */
+const stopPolling = () => {
+  if (pollingTimer) {
+    clearTimeout(pollingTimer);
+    pollingTimer = null;
+  }
+};
+
+/**
+ * 获取状态颜色
+ */
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'Accepted':
+      return 'green';
+    case 'Wrong Answer':
+      return 'red';
+    case 'Time Limit Exceeded':
+      return 'orange';
+    case 'Memory Limit Exceeded':
+      return 'orange';
+    case 'Compilation Error':
+      return 'purple';
+    case 'Runtime Error':
+      return 'red';
+    default:
+      return 'gray';
+  }
+};
+
+/**
+ * 获取状态文本
+ */
+const getStatusText = (status: string) => {
+  const statusMap: Record<string, string> = {
+    'Accepted': '答案正确',
+    'Wrong Answer': '答案错误',
+    'Time Limit Exceeded': '时间超限',
+    'Memory Limit Exceeded': '内存超限',
+    'Compilation Error': '编译错误',
+    'Runtime Error': '运行错误',
+    'Presentation Error': '格式错误',
+    'Output Limit Exceeded': '输出超限',
+    'Waiting': '等待中',
+    'System Error': '系统错误',
+  };
+  return statusMap[status] || status || '未知状态';
+};
+
+/**
+ * 跳转到提交记录列表
+ */
+const goToSubmitList = () => {
+  resultModalVisible.value = false;
+  router.push("/question_submit");
 };
 
 /**
@@ -145,6 +311,13 @@ const doSubmit = async () => {
  */
 onMounted(() => {
   loadData();
+});
+
+/**
+ * 组件销毁时清理定时器
+ */
+onUnmounted(() => {
+  stopPolling();
 });
 
 /**

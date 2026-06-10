@@ -31,7 +31,10 @@
         <!-- 没名称用户 -->
         <a-link>{{ store.state.user.loginUser.userName ?? "无名" }}</a-link>
         <template #content>
-          <p class="logout" @click="logout">退出登录</p>
+          <div class="user-menu">
+            <p @click="goProfile">个人资料</p>
+            <p class="logout" @click="logout">退出登录</p>
+          </div>
         </template>
       </a-popover>
     </a-col>
@@ -92,11 +95,27 @@ const gologin = () => {
     path: "/user/login",
   });
 };
+
+const goProfile = () => {
+  router.push({
+    path: "/profile",
+  });
+};
 </script>
 
 <style scoped>
-.logout {
+.user-menu p {
   cursor: pointer;
+  padding: 8px 16px;
+  margin: 0;
+}
+
+.user-menu p:hover {
+  background-color: #f5f5f5;
+}
+
+.logout {
+  border-top: 1px solid #eee;
 }
 
 .title-bar {
