@@ -815,4 +815,151 @@ declare namespace API {
     userProfile?: string;
     userRole?: string;
   };
+
+  // ==================== 团队相关类型 ====================
+
+  type Team = {
+    id?: number;
+    teamName?: string;
+    teamDesc?: string;
+    teamAvatar?: string;
+    userId?: number;
+    memberCount?: number;
+    maxMemberCount?: number;
+    status?: number;
+    createTime?: string;
+    updateTime?: string;
+    isDelete?: number;
+  };
+
+  type TeamAddRequest = {
+    teamName?: string;
+    teamDesc?: string;
+    teamAvatar?: string;
+    maxMemberCount?: number;
+    captainUserId?: number;
+  };
+
+  type TeamUpdateRequest = {
+    id?: number;
+    teamName?: string;
+    teamDesc?: string;
+    teamAvatar?: string;
+    maxMemberCount?: number;
+    status?: number;
+    current?: number;
+    pageSize?: number;
+    sortField?: string;
+    sortOrder?: string;
+  };
+
+  type TeamQueryRequest = {
+    id?: number;
+    teamName?: string;
+    teamDesc?: string;
+    userId?: number;
+    status?: number;
+    memberId?: number;
+    current?: number;
+    pageSize?: number;
+    sortField?: string;
+    sortOrder?: string;
+  };
+
+  type TeamJoinRequest = {
+    teamId?: number;
+  };
+
+  type TeamQuitRequest = {
+    teamId?: number;
+  };
+
+  type TeamInviteRequest = {
+    teamId?: number;
+    userId?: string;  // 改为 string 类型，避免大数精度丢失
+  };
+
+  type TeamKickRequest = {
+    teamId?: number;
+    userId?: number;
+  };
+
+  type TeamUserQueryRequest = {
+    teamId?: number;
+    userId?: number;
+    userRole?: number;
+    current?: number;
+    pageSize?: number;
+    sortField?: string;
+    sortOrder?: string;
+  };
+
+  type TeamVO = {
+    id?: number;
+    teamName?: string;
+    teamDesc?: string;
+    teamAvatar?: string;
+    userId?: number;
+    memberCount?: number;
+    maxMemberCount?: number;
+    status?: number;
+    createTime?: string;
+    createUser?: UserVO;
+    hasJoin?: boolean;
+    userRole?: number;
+  };
+
+  type TeamUserVO = {
+    id?: number;
+    teamId?: number;
+    userId?: number;
+    userRole?: number;
+    userRoleName?: string;
+    joinTime?: string;
+    user?: UserVO;
+  };
+
+  type PageTeamVO_ = {
+    countId?: string;
+    current?: number;
+    maxLimit?: number;
+    optimizeCountSql?: boolean;
+    orders?: OrderItem[];
+    pages?: number;
+    records?: TeamVO[];
+    searchCount?: boolean;
+    size?: number;
+    total?: number;
+  };
+
+  type PageTeamUserVO_ = {
+    countId?: string;
+    current?: number;
+    maxLimit?: number;
+    optimizeCountSql?: boolean;
+    orders?: OrderItem[];
+    pages?: number;
+    records?: TeamUserVO[];
+    searchCount?: boolean;
+    size?: number;
+    total?: number;
+  };
+
+  type BaseResponsePageTeamVO_ = {
+    code?: number;
+    data?: PageTeamVO_;
+    message?: string;
+  };
+
+  type BaseResponsePageTeamUserVO_ = {
+    code?: number;
+    data?: PageTeamUserVO_;
+    message?: string;
+  };
+
+  type BaseResponseTeamVO_ = {
+    code?: number;
+    data?: TeamVO;
+    message?: string;
+  };
 }

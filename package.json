@@ -1,11 +1,12 @@
 {
-  "name": "yuoj-frontend",
+  "name": "oj-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "gen-api": "npx openapi-typescript-codegen -i http://localhost:8802/api/v2/api-docs -o ./generated -c axios"
   },
   "dependencies": {
     "@bytemd/plugin-gfm": "^1.21.0",

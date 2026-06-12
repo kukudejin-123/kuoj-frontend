@@ -3,10 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { Page_QuestionSubmitVO_ } from './Page_QuestionSubmitVO_';
+import type { QuestionSubmitVO } from './QuestionSubmitVO';
 
 export type BaseResponse_Page_QuestionSubmitVO_ = {
     code?: number;
-    data?: Page_QuestionSubmitVO_;
+    data?: {
+        current?: number;
+        records?: Array<QuestionSubmitVO>;
+        size?: number;
+        total?: number;
+    };
     message?: string;
 };

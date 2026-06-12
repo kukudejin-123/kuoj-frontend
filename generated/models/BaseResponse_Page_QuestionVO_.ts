@@ -3,10 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import type { Page_QuestionVO_ } from './Page_QuestionVO_';
+import type { QuestionVO } from './QuestionVO';
 
 export type BaseResponse_Page_QuestionVO_ = {
     code?: number;
-    data?: Page_QuestionVO_;
+    data?: {
+        current?: number;
+        records?: Array<QuestionVO>;
+        size?: number;
+        total?: number;
+    };
     message?: string;
 };

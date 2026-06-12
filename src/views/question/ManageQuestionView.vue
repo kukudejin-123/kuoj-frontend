@@ -1,5 +1,16 @@
 <template>
   <div id="manageQuestionView">
+    <a-form :model="searchParams" layout="inline" style="margin-bottom: 16px;">
+      <a-form-item field="isPublic" label="可见性">
+        <a-select v-model="searchParams.isPublic" placeholder="全部" allow-clear style="width: 150px;">
+          <a-option :value="1">公开</a-option>
+          <a-option :value="0">仅比赛可见</a-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item>
+        <a-button type="primary" @click="doSearch">搜索</a-button>
+      </a-form-item>
+    </a-form>
     <a-table :ref="tableRef" :columns="columns" :data="dataList" :pagination="{
       showTotal: true,
       pageSize: searchParams.pageSize,
@@ -12,12 +23,6 @@
           {{ record.content }}
         </div>
       </template>
-      <!-- 自定义答案列 -->
-      <template #answer="{ record }">
-        <div class="ellipsed-column">
-          {{ record.answer }}
-        </div>
-      </template>
       <!-- 自定义标签列 -->
       <template #tags="{ record }">
         <div style="width: 110px;">
@@ -27,29 +32,15 @@
           </a-tag>
         </div>
       </template>
+      <!-- 自定义可见性列 -->
+      <template #isPublic="{ record }">
+        <a-tag v-if="record.isPublic === 1" color="green">公开</a-tag>
+        <a-tag v-else-if="record.isPublic === 0" color="orange">仅比赛可见</a-tag>
+        <a-tag v-else color="gray">未设置</a-tag>
+      </template>
       <template #createTime="{ record }">
         <div style="width: 100px;">
           {{ moment(record.createTime).format("YYYY-MM-DD") }}
-        </div>
-      </template>
-      <!-- 自定义判题配置列 -->
-      <template #judgeConfig="{ record }">
-        <div class="judge-config" style="width: 130px;">
-          <div v-for="(value, key) in formatJudgeConfig(record.judgeConfig)" :key="key">
-            <strong>{{ key }}:</strong> {{ value }}
-          </div>
-        </div>
-      </template>
-      <!-- 自定义判题用例列 -->
-      <template #judgeCase="{ record }">
-        <div class="test-case">
-          <div v-for="(testCase, index) in parseTestCases(record.judgeCase)" :key="index" class="test-case-item">
-            <span>输入:</span>
-            <pre class="inline">{{ formatTestCase(testCase.input) }}</pre>
-            <br />
-            <span>输出:</span>
-            <pre class="inline">{{ testCase.output }}</pre>
-          </div>
         </div>
       </template>
       <template #optional="{ record }">
@@ -82,6 +73,7 @@ const total = ref(0);
 const searchParams = ref({
   pageSize: 10,
   current: 1,
+  isPublic: undefined as number | undefined,
 });
 
 const loadData = async () => {
@@ -99,6 +91,17 @@ const loadData = async () => {
 };
 
 /**
+ * 搜索按钮点击
+ */
+const doSearch = () => {
+  searchParams.value = {
+    ...searchParams.value,
+    current: 1,
+  };
+  loadData();
+};
+
+/**
  * 监听 searchParams 变量，改变时触发页面的重新加载
  */
 watchEffect(() => {
@@ -112,13 +115,7 @@ onMounted(() => {
   loadData();
 });
 
-// {id: "1", title: "A+ D", content: "新的题目内容", tags: "["二叉树"]", answer: "新的答案", submitNum: 0,…}
-
 const columns = [
-  // {
-  //   title: "id",
-  //   dataIndex: "id",
-  // },
   {
     title: "标题",
     dataIndex: "title",
@@ -132,10 +129,6 @@ const columns = [
     slotName: "tags",
   },
   {
-    title: "答案",
-    slotName: "answer",
-  },
-  {
     title: "提交数",
     dataIndex: "submitNum",
   },
@@ -144,16 +137,8 @@ const columns = [
     dataIndex: "acceptedNum",
   },
   {
-    title: "判题配置",
-    slotName: "judgeConfig",
-  },
-  {
-    title: "判题用例",
-    slotName: "judgeCase",
-  },
-  {
-    title: "用户",
-    dataIndex: "user.userName",
+    title: "可见性",
+    slotName: "isPublic",
   },
   {
     title: "创建时间",
@@ -194,37 +179,6 @@ const doUpdate = (question: Question) => {
     },
   });
 };
-
-// 将 judgeConfig 字符串解析为对象并格式化为特定的显示格式
-const formatJudgeConfig = (judgeConfig: string) => {
-  try {
-    const config = JSON.parse(judgeConfig);
-    return {
-      "时间限制": `${config.timeLimit} ms`,
-      "空间限制": `${config.memoryLimit} KB`,
-      "堆限制": `${config.stackLimit} KB`,
-    };
-  } catch (e) {
-    return {};
-  }
-};
-
-// 解析判题用例的 JSON 字符串
-const parseTestCases = (judgeCase: string) => {
-  try {
-    return JSON.parse(judgeCase);
-  } catch (e) {
-    return [];
-  }
-};
-
-// 格式化判题用例输入
-const formatTestCase = (input: string) => {
-  return input
-    .split(', ')
-    .map(line => line.trim())
-    .join('\n');
-};
 </script>
 
 <style scoped>
@@ -234,19 +188,5 @@ const formatTestCase = (input: string) => {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.test-case {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.test-case-item {
-  margin-bottom: 8px;
-}
-
-.inline {
-  display: inline;
-  white-space: pre-wrap;
 }
 </style>

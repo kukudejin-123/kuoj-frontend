@@ -9,6 +9,7 @@ export type QuestionQueryRequest = {
     current?: number;
     difficulty?: number;
     id?: number;
+    isPublic?: number;
     pageSize?: number;
     sortField?: string;
     sortOrder?: string;

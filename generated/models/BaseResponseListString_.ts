@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export type BaseResponseListString_ = {
+export type BaseResponse_ListString_ = {
     code?: number;
     data?: Array<string>;
     message?: string;

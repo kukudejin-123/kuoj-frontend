@@ -13,6 +13,9 @@ import QuestionsView from "@/views/question/QuestionsView.vue";
 import QuestionSubmitView from "@/views/question/QuestionSubmitView.vue";
 import ViewQuestionView from "@/views/question/ViewQuestionView.vue";
 import SubmitCodeView from "@/views/question/SubmitCodeView.vue";
+import TeamsView from "@/views/team/TeamsView.vue";
+import TeamDetailView from "@/views/team/TeamDetailView.vue";
+import CreateTeamView from "@/views/team/CreateTeamView.vue";
 
 export const routes: Array<RouteRecordRaw> = [
   {
@@ -79,7 +82,7 @@ export const routes: Array<RouteRecordRaw> = [
     name: "创建题目",
     component: AddQuestionView,
     meta: {
-      access: ACCESS_ENUM.USER,
+      access: ACCESS_ENUM.ADMIN,
     },
   },
   {
@@ -87,7 +90,7 @@ export const routes: Array<RouteRecordRaw> = [
     name: "更新题目",
     component: AddQuestionView,
     meta: {
-      access: ACCESS_ENUM.USER,
+      access: ACCESS_ENUM.ADMIN,
       hideInMenu: true,
     },
   },
@@ -109,6 +112,29 @@ export const routes: Array<RouteRecordRaw> = [
     name: "无权限",
     component: NoAuthView,
     meta: {
+      hideInMenu: true,
+    },
+  },
+  {
+    path: "/teams",
+    name: "团队列表",
+    component: TeamsView,
+  },
+  {
+    path: "/team/:id",
+    name: "团队详情",
+    component: TeamDetailView,
+    props: true,
+    meta: {
+      hideInMenu: true,
+    },
+  },
+  {
+    path: "/team/create",
+    name: "创建团队",
+    component: CreateTeamView,
+    meta: {
+      access: ACCESS_ENUM.ADMIN,
       hideInMenu: true,
     },
   },

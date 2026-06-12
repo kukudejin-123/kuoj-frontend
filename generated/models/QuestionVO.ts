@@ -13,7 +13,9 @@ export type QuestionVO = {
     difficulty?: number;
     favourNum?: number;
     id?: number;
+    isPublic?: number;
     judgeConfig?: JudgeConfig;
+    sourceCode?: string;
     submitNum?: number;
     tags?: Array<string>;
     thumbNum?: number;

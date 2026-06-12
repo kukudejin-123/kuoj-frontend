@@ -74,6 +74,6 @@ const handleSubmit = async () => {
 };
 
 const goRegister = async () => {
-    router.push("/user/register");
-  }
+  router.push("/user/register");
+};
 </script>

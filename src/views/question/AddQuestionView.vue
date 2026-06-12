@@ -15,6 +15,16 @@
       <a-form-item field="tags" label="标签">
         <a-input-tag v-model="form.tags" placeholder="请选择标签" allow-clear />
       </a-form-item>
+      <a-form-item field="isPublic" label="是否公开">
+        <a-radio-group v-model="form.isPublic">
+          <a-radio :value="1">公开</a-radio>
+          <a-radio :value="0">不公开（仅比赛可见）</a-radio>
+        </a-radio-group>
+        <div style="margin-top: 8px; color: #666; font-size: 12px;">
+          <div><strong>公开：</strong>所有用户可在题库中看到此题目</div>
+          <div><strong>不公开：</strong>此题目仅在比赛中可见，管理员可在比赛中关联此题目</div>
+        </div>
+      </a-form-item>
       <a-form-item field="content" label="题目内容" required>
         <MdEditor :value="form.content" :handle-change="onContentChange" />
       </a-form-item>
@@ -220,6 +230,7 @@ const defaultForm = {
   answer: "",
   content: "",
   sourceCode: "",
+  isPublic: 1, // 默认公开
   judgeConfig: {
     memoryLimit: 1000,
     stackLimit: 1000,
@@ -247,6 +258,7 @@ const resetForm = () => {
     ...defaultForm,
     difficulty: 0,
     tags: [],
+    isPublic: 1,
     judgeCase: [{ input: "", output: "" }],
     judgeConfig: {
       ...defaultForm.judgeConfig,
@@ -329,8 +341,8 @@ const validateForm = (): string | null => {
   if (!form.value.title || form.value.title.trim() === "") {
     return "标题不能为空";
   }
-  if (form.value.title.length > 100) {
-    return "标题长度不能超过100个字符";
+  if (form.value.title.length > 80) {
+    return "标题长度不能超过80个字符";
   }
   if (!form.value.content || form.value.content.trim() === "") {
     return "题目内容不能为空";
