@@ -1,25 +1,37 @@
 <template>
   <div id="questionSubmitView">
     <a-form :model="searchParams" layout="inline">
-      <a-form-item field="questionId" label="题号" style="min-width: 240px">
-        <a-input v-model="searchParams.questionId" placeholder="请输入" />
+      <a-form-item label="题号">
+        <a-input v-model="searchParams.questionId" placeholder="请输入题号" allow-clear style="width: 120px" />
       </a-form-item>
-      <a-form-item field="language" label="编程语言" style="min-width: 240px">
-        <a-select
-          v-model="searchParams.language"
-          :style="{ width: '320px' }"
-          placeholder="选择编程语言"
-        >
-          <a-option>java</a-option>
-          <a-option>cpp</a-option>
-          <a-option>go</a-option>
-          <a-option>python</a-option>
-          <a-option>javascript</a-option>
-          <a-option>c</a-option>
+      <a-form-item label="判题结果">
+        <a-select v-model="searchParams.judgeResult" placeholder="全部" allow-clear style="width: 140px">
+          <a-option value="成功">通过</a-option>
+          <a-option value="答案错误">答案错误</a-option>
+          <a-option value="超时">时间超限</a-option>
+          <a-option value="内存溢出">内存超限</a-option>
+          <a-option value="编译错误">编译错误</a-option>
+          <a-option value="运行错误">运行错误</a-option>
         </a-select>
       </a-form-item>
+      <a-form-item label="编程语言">
+        <a-select v-model="searchParams.language" placeholder="全部" allow-clear style="width: 120px">
+          <a-option value="java">Java</a-option>
+          <a-option value="cpp">C++</a-option>
+          <a-option value="go">Go</a-option>
+          <a-option value="python">Python</a-option>
+          <a-option value="javascript">JavaScript</a-option>
+          <a-option value="c">C</a-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="提交者">
+        <a-input v-model="searchParams.userName" placeholder="请输入用户名" allow-clear style="width: 120px" />
+      </a-form-item>
       <a-form-item>
-        <a-button type="primary" @click="doSubmit">搜索</a-button>
+        <a-space>
+          <a-button type="primary" @click="doSubmit">搜索</a-button>
+          <a-button @click="doClear">清空</a-button>
+        </a-space>
       </a-form-item>
     </a-form>
     <a-divider size="0" />
@@ -36,6 +48,9 @@
       @page-change="onPageChange"
       :scroll="{ x: 1000 }"
     >
+      <template #questionNumber="{ record }">
+        P{{ record.questionVO?.questionNumber || '-' }}
+      </template>
       <template #questionTitle="{ record }">
         <a-link @click="toQuestionPage(record.questionVO)">
           {{ record.questionVO?.title || '-' }}
@@ -57,11 +72,6 @@
           </div>
         </div>
         <span v-else style="color: #999">-</span>
-      </template>
-      <template #status="{ record }">
-        <a-tag :color="getSubmitStatusColor(record.status)">
-          {{ formatStatus(record.status) }}
-        </a-tag>
       </template>
       <template #userName="{ record }">
         {{ record.userVO?.userName || '-' }}
@@ -93,21 +103,24 @@ const tableRef = ref();
 
 const dataList = ref([]);
 const total = ref(0);
-const searchParams = ref<QuestionSubmitQueryRequest>({
+const searchParams = ref<any>({
   questionId: undefined,
   language: undefined,
+  judgeResult: undefined,
+  userName: undefined,
   pageSize: 10,
   current: 1,
 });
 
 const loadData = async () => {
-  const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost(
-    {
-      ...searchParams.value,
-      sortField: "createTime",
-      sortOrder: "descend",
-    },
-  );
+  // 构建查询参数
+  const params: any = {
+    ...searchParams.value,
+    sortField: "createTime",
+    sortOrder: "descend",
+  };
+
+  const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost(params);
   if (res.code === 0) {
     dataList.value = res.data.records;
     total.value = res.data.total;
@@ -117,13 +130,6 @@ const loadData = async () => {
 };
 
 /**
- * 监听 searchParams 变量，改变时触发页面的重新加载
- */
-watchEffect(() => {
-  loadData();
-});
-
-/**
  * 页面加载时，请求数据
  */
 onMounted(() => {
@@ -131,6 +137,11 @@ onMounted(() => {
 });
 
 const columns = [
+  {
+    title: "题号",
+    slotName: "questionNumber",
+    width: 80,
+  },
   {
     title: "题目",
     slotName: "questionTitle",
@@ -142,14 +153,9 @@ const columns = [
     width: 100,
   },
   {
-    title: "判题信息",
+    title: "判题结果",
     slotName: "judgeInfo",
     width: 200,
-  },
-  {
-    title: "状态",
-    slotName: "status",
-    width: 100,
   },
   {
     title: "提交者",
@@ -174,13 +180,13 @@ const onPageChange = (page: number) => {
     ...searchParams.value,
     current: page,
   };
+  loadData();
 };
 
 const router = useRouter();
 
 /**
  * 跳转到做题页面
- * @param question
  */
 const toQuestionPage = (question: Question) => {
   router.push({
@@ -202,87 +208,78 @@ const doSubmit = () => {
     ...searchParams.value,
     current: 1,
   };
+  loadData();
+};
+
+/**
+ * 清空筛选条件
+ */
+const doClear = () => {
+  searchParams.value = {
+    questionId: undefined,
+    language: undefined,
+    judgeResult: undefined,
+    userName: undefined,
+    pageSize: 10,
+    current: 1,
+  };
+  loadData();
 };
 
 /**
  * 获取判题结果颜色
  */
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'Accepted':
-      return 'green';
-    case 'Wrong Answer':
-      return 'red';
-    case 'Time Limit Exceeded':
-      return 'orange';
-    case 'Memory Limit Exceeded':
-      return 'orange';
-    case 'Compilation Error':
-      return 'purple';
-    case 'Runtime Error':
-      return 'red';
-    case 'Presentation Error':
-      return 'gold';
-    case 'Output Limit Exceeded':
-      return 'orange';
-    default:
-      return 'gray';
-  }
+  if (!status) return 'gray';
+  const s = status.trim();
+  // 英文匹配
+  if (s === 'Accepted') return 'green';
+  if (s === 'Wrong Answer' || s === 'Runtime Error') return 'red';
+  if (s === 'Time Limit Exceeded') return 'orange';
+  if (s === 'Memory Limit Exceeded') return 'purple';
+  if (s === 'Compile Error') return 'gray';
+  // 中文匹配（后端 getValue 返回中文）
+  if (s === '成功') return 'green';
+  if (s === '答案错误' || s === '运行错误') return 'red';
+  if (s === '超时') return 'orange';
+  if (s === '内存溢出') return 'purple';
+  if (s === '编译错误') return 'gray';
+  return 'gray';
 };
 
 /**
  * 获取判题结果文本
  */
 const getStatusText = (status: string) => {
-  const statusMap: Record<string, string> = {
-    'Accepted': '答案正确',
+  if (!status) return '未知';
+  const s = status.trim();
+  // 英文映射
+  const enMap: Record<string, string> = {
+    'Accepted': '通过',
     'Wrong Answer': '答案错误',
     'Time Limit Exceeded': '时间超限',
     'Memory Limit Exceeded': '内存超限',
-    'Compilation Error': '编译错误',
+    'Compile Error': '编译错误',
     'Runtime Error': '运行错误',
     'Presentation Error': '格式错误',
     'Output Limit Exceeded': '输出超限',
     'Waiting': '等待中',
     'System Error': '系统错误',
   };
-  return statusMap[status] || status || '未知';
-};
-
-/**
- * 获取提交状态颜色
- */
-const getSubmitStatusColor = (status: string) => {
-  switch (status) {
-    case '0':
-      return 'gray';
-    case '1':
-      return 'blue';
-    case '2':
-      return 'green';
-    case '3':
-      return 'red';
-    default:
-      return 'gray';
-  }
-};
-
-/**
- * 根据 status 返回对应的状态字符串
- */
-const formatStatus = (status: string) => {
-  switch (status) {
-    case "0":
-      return "待判题";
-    case "1":
-      return "判题中";
-    case "2":
-      return "成功";
-    case "3":
-      return "失败";
-    default:
-      return "未知状态";
-  }
+  // 中文映射（后端 getValue 返回中文）
+  const cnMap: Record<string, string> = {
+    '成功': '通过',
+    '答案错误': '答案错误',
+    '超时': '时间超限',
+    '内存溢出': '内存超限',
+    '编译错误': '编译错误',
+    '运行错误': '运行错误',
+    '展示错误': '格式错误',
+    '输出溢出': '输出超限',
+    '等待中': '等待中',
+    '系统错误': '系统错误',
+  };
+  return enMap[s] || cnMap[s] || s || '未知';
 };
 
 /**

@@ -155,6 +155,11 @@ onMounted(() => {
 
 const columns = [
   {
+    title: "题号",
+    dataIndex: "questionNumber",
+    width: 80,
+  },
+  {
     title: "题目名称",
     dataIndex: "title",
   },

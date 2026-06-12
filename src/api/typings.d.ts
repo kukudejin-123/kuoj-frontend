@@ -962,4 +962,171 @@ declare namespace API {
     data?: TeamVO;
     message?: string;
   };
+
+  // ==================== 比赛相关类型 ====================
+
+  type Contest = {
+    id?: number;
+    contestName?: string;
+    contestDesc?: string;
+    userId?: number;
+    startTime?: string;
+    endTime?: string;
+    contestType?: number;
+    status?: number;
+    participantCount?: number;
+    questionCount?: number;
+    createTime?: string;
+    updateTime?: string;
+    isDelete?: number;
+  };
+
+  type ContestAddRequest = {
+    contestName?: string;
+    contestDesc?: string;
+    startTime?: string;
+    endTime?: string;
+    contestType?: number;
+    questionIds?: number[];
+  };
+
+  type ContestUpdateRequest = {
+    id?: number;
+    contestName?: string;
+    contestDesc?: string;
+    startTime?: string;
+    endTime?: string;
+    contestType?: number;
+    questionIds?: number[];
+  };
+
+  type ContestQueryRequest = {
+    id?: number;
+    contestName?: string;
+    userId?: number;
+    contestType?: number;
+    status?: number;
+    current?: number;
+    pageSize?: number;
+    sortField?: string;
+    sortOrder?: string;
+  };
+
+  type ContestQuestionVO = {
+    questionId?: number;
+    questionOrder?: number;
+    questionLabel?: string;
+    score?: number;
+    title?: string;
+    difficulty?: number;
+    acceptedNum?: number;
+    submitNum?: number;
+  };
+
+  type ContestVO = {
+    id?: number;
+    contestName?: string;
+    contestDesc?: string;
+    userId?: number;
+    startTime?: string;
+    endTime?: string;
+    contestType?: number;
+    status?: number;
+    participantCount?: number;
+    questionCount?: number;
+    createTime?: string;
+    createUser?: UserVO;
+    hasJoin?: boolean;
+    questionList?: ContestQuestionVO[];
+  };
+
+  type ContestSubmitAddRequest = {
+    contestId?: number;
+    questionId?: number;
+    language?: string;
+    code?: string;
+  };
+
+  type ContestSubmitQueryRequest = {
+    contestId?: number;
+    questionId?: number;
+    userId?: number;
+    status?: string;
+    current?: number;
+    pageSize?: number;
+    sortField?: string;
+    sortOrder?: string;
+  };
+
+  type ContestSubmitVO = {
+    id?: number;
+    contestId?: number;
+    questionId?: number;
+    userId?: number;
+    language?: string;
+    code?: string;
+    judgeInfo?: string;
+    status?: string;
+    submitTime?: string;
+    isFirstAccept?: number;
+    createTime?: string;
+    user?: UserVO;
+    questionLabel?: string;
+  };
+
+  type PageContestVO_ = {
+    countId?: string;
+    current?: number;
+    maxLimit?: number;
+    optimizeCountSql?: boolean;
+    orders?: OrderItem[];
+    pages?: number;
+    records?: ContestVO[];
+    searchCount?: boolean;
+    size?: number;
+    total?: number;
+  };
+
+  type PageContestSubmitVO_ = {
+    countId?: string;
+    current?: number;
+    maxLimit?: number;
+    optimizeCountSql?: boolean;
+    orders?: OrderItem[];
+    pages?: number;
+    records?: ContestSubmitVO[];
+    searchCount?: boolean;
+    size?: number;
+    total?: number;
+  };
+
+  type BaseResponsePageContestVO_ = {
+    code?: number;
+    data?: PageContestVO_;
+    message?: string;
+  };
+
+  type BaseResponseContestVO_ = {
+    code?: number;
+    data?: ContestVO;
+    message?: string;
+  };
+
+  type BaseResponsePageContestSubmitVO_ = {
+    code?: number;
+    data?: PageContestSubmitVO_;
+    message?: string;
+  };
+
+  type BaseResponseContestSubmitVO_ = {
+    code?: number;
+    data?: ContestSubmitVO;
+    message?: string;
+  };
+
+  type BaseResponseListContestVO_ = {
+    code?: number;
+    data?: ContestVO[];
+    message?: string;
+  };
 }

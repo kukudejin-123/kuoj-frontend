@@ -3,7 +3,7 @@
     <a-card v-if="submitRecord" :title="`提交记录 #${submitRecord.id}`">
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="copyCode">
+          <a-button v-if="submitRecord.code" type="primary" @click="copyCode">
             复制代码
           </a-button>
           <a-button @click="goBack">返回</a-button>
@@ -19,7 +19,7 @@
           <span class="code-title">提交代码</span>
           <span class="code-language">{{ submitRecord.language }}</span>
         </div>
-        <pre class="code-block"><code>{{ submitRecord.code || '代码已隐藏' }}</code></pre>
+        <pre class="code-block"><code>{{ submitRecord.code || '无权查看代码' }}</code></pre>
       </div>
 
       <a-divider />

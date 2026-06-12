@@ -16,6 +16,10 @@ import SubmitCodeView from "@/views/question/SubmitCodeView.vue";
 import TeamsView from "@/views/team/TeamsView.vue";
 import TeamDetailView from "@/views/team/TeamDetailView.vue";
 import CreateTeamView from "@/views/team/CreateTeamView.vue";
+import ContestsView from "@/views/contest/ContestsView.vue";
+import ContestDetailView from "@/views/contest/ContestDetailView.vue";
+import ContestQuestionView from "@/views/contest/ContestQuestionView.vue";
+import CreateContestView from "@/views/contest/CreateContestView.vue";
 
 export const routes: Array<RouteRecordRaw> = [
   {
@@ -39,6 +43,11 @@ export const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: "/",
+    name: "主页",
+    component: QuestionsView,
+  },
+  {
     path: "/profile",
     name: "个人资料",
     component: UserProfileView,
@@ -51,11 +60,17 @@ export const routes: Array<RouteRecordRaw> = [
     path: "/questions",
     name: "浏览题目",
     component: QuestionsView,
+    meta: {
+      access: ACCESS_ENUM.USER,
+    },
   },
   {
     path: "/question_submit",
     name: "浏览题目提交",
     component: QuestionSubmitView,
+    meta: {
+      access: ACCESS_ENUM.USER,
+    },
   },
   {
     path: "/view/question/:id",
@@ -103,11 +118,6 @@ export const routes: Array<RouteRecordRaw> = [
     },
   },
   {
-    path: "/",
-    name: "主页",
-    component: QuestionsView,
-  },
-  {
     path: "/noAuth",
     name: "无权限",
     component: NoAuthView,
@@ -119,6 +129,9 @@ export const routes: Array<RouteRecordRaw> = [
     path: "/teams",
     name: "团队列表",
     component: TeamsView,
+    meta: {
+      access: ACCESS_ENUM.USER,
+    },
   },
   {
     path: "/team/:id",
@@ -126,6 +139,7 @@ export const routes: Array<RouteRecordRaw> = [
     component: TeamDetailView,
     props: true,
     meta: {
+      access: ACCESS_ENUM.USER,
       hideInMenu: true,
     },
   },
@@ -133,6 +147,43 @@ export const routes: Array<RouteRecordRaw> = [
     path: "/team/create",
     name: "创建团队",
     component: CreateTeamView,
+    meta: {
+      access: ACCESS_ENUM.ADMIN,
+      hideInMenu: true,
+    },
+  },
+  {
+    path: "/contests",
+    name: "比赛列表",
+    component: ContestsView,
+    meta: {
+      access: ACCESS_ENUM.USER,
+    },
+  },
+  {
+    path: "/contest/:id",
+    name: "比赛详情",
+    component: ContestDetailView,
+    props: true,
+    meta: {
+      access: ACCESS_ENUM.USER,
+      hideInMenu: true,
+    },
+  },
+  {
+    path: "/contest/:id/question/:questionId",
+    name: "比赛做题",
+    component: ContestQuestionView,
+    props: true,
+    meta: {
+      access: ACCESS_ENUM.USER,
+      hideInMenu: true,
+    },
+  },
+  {
+    path: "/contest/create",
+    name: "创建比赛",
+    component: CreateContestView,
     meta: {
       access: ACCESS_ENUM.ADMIN,
       hideInMenu: true,

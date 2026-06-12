@@ -1,14 +1,11 @@
 <template>
-  <div id="viewQuestionView">
+  <div id="contestQuestionView">
     <a-row :gutter="[24, 24]">
       <a-col :md="12" :xs="24">
         <a-tabs v-model:active-key="activeTab" @tab-click="handleTabClick">
           <a-tab-pane key="question" title="题目">
-            <a-card v-if="question" :title="`P${question.questionNumber || '-'} ${question.title}`">
-              <a-descriptions
-                title="判题条件"
-                :column="{ xs: 1, md: 2, lg: 3 }"
-              >
+            <a-card v-if="question" :title="questionLabel + '. ' + question.title">
+              <a-descriptions title="判题条件" :column="{ xs: 1, md: 2, lg: 3 }">
                 <a-descriptions-item label="时间限制">
                   {{ question.judgeConfig?.timeLimit ?? 0 }}ms
                 </a-descriptions-item>
@@ -38,11 +35,8 @@
               <MdViewer :value="question.content || ''" />
               <template #extra>
                 <a-space wrap>
-                  <a-tag
-                    v-for="(tag, index) of question.tags"
-                    :key="index"
-                    color="green"
-                    >{{ tag }}
+                  <a-tag v-for="(tag, index) of question.tags" :key="index" color="green">
+                    {{ tag }}
                   </a-tag>
                 </a-space>
               </template>
@@ -69,7 +63,7 @@
                   <template #columns>
                     <a-table-column title="提交时间" data-index="createTime" :width="170">
                       <template #cell="{ record }">
-                        {{ formatTime(record.createTime) }}
+                        {{ formatTime(record.submitTime || record.createTime) }}
                       </template>
                     </a-table-column>
                     <a-table-column title="编程语言" data-index="language" :width="100">
@@ -86,13 +80,13 @@
                     </a-table-column>
                     <a-table-column title="执行时间" :width="100">
                       <template #cell="{ record }">
-                        <span v-if="record.judgeInfo?.time">{{ record.judgeInfo.time }} ms</span>
+                        <span v-if="getJudgeTime(record.judgeInfo)">{{ getJudgeTime(record.judgeInfo) }} ms</span>
                         <span v-else>-</span>
                       </template>
                     </a-table-column>
                     <a-table-column title="内存占用" :width="100">
                       <template #cell="{ record }">
-                        <span v-if="record.judgeInfo?.memory">{{ record.judgeInfo.memory }} KB</span>
+                        <span v-if="getJudgeMemory(record.judgeInfo)">{{ getJudgeMemory(record.judgeInfo) }} KB</span>
                         <span v-else>-</span>
                       </template>
                     </a-table-column>
@@ -108,22 +102,12 @@
               </a-spin>
             </a-card>
           </a-tab-pane>
-          <a-tab-pane key="comment" title="评论" disabled> 评论区</a-tab-pane>
-          <a-tab-pane key="answer" title="答案"> 暂时无法查看答案</a-tab-pane>
         </a-tabs>
       </a-col>
       <a-col :md="12" :xs="24">
         <a-form :model="form" layout="inline">
-          <a-form-item
-            field="language"
-            label="编程语言"
-            style="min-width: 240px"
-          >
-            <a-select
-              v-model="form.language"
-              :style="{ width: '320px' }"
-              placeholder="选择编程语言"
-            >
+          <a-form-item field="language" label="编程语言" style="min-width: 240px">
+            <a-select v-model="form.language" :style="{ width: '320px' }" placeholder="选择编程语言">
               <a-option>java</a-option>
               <a-option>cpp</a-option>
               <a-option>go</a-option>
@@ -139,12 +123,7 @@
           :handle-change="changeCode"
         />
         <a-divider size="0" />
-        <a-button
-          type="primary"
-          style="min-width: 200px"
-          @click="doSubmit"
-          :loading="isSubmitting"
-        >
+        <a-button type="primary" style="min-width: 200px" @click="doSubmit" :loading="isSubmitting">
           {{ isSubmitting ? '提交中...' : '提交代码' }}
         </a-button>
       </a-col>
@@ -168,15 +147,16 @@
               {{ getResultText(judgeResult) }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="执行时间" v-if="judgeResult.judgeInfo?.time">
-            {{ judgeResult.judgeInfo.time }} ms
+          <a-descriptions-item label="执行时间" v-if="getJudgeTime(judgeResult.judgeInfo)">
+            {{ getJudgeTime(judgeResult.judgeInfo) }} ms
           </a-descriptions-item>
-          <a-descriptions-item label="内存占用" v-if="judgeResult.judgeInfo?.memory">
-            {{ judgeResult.judgeInfo.memory }} KB
+          <a-descriptions-item label="内存占用" v-if="getJudgeMemory(judgeResult.judgeInfo)">
+            {{ getJudgeMemory(judgeResult.judgeInfo) }} KB
           </a-descriptions-item>
         </a-descriptions>
         <div style="margin-top: 16px; text-align: right;">
-          <a-button type="primary" @click="goToSubmitList">查看提交记录</a-button>
+          <a-button style="margin-right: 8px" @click="goToMySubmits">查看提交记录</a-button>
+          <a-button type="primary" @click="closeResultModal">关闭</a-button>
         </div>
       </div>
     </a-modal>
@@ -191,7 +171,7 @@
       <div v-if="currentSubmit">
         <a-descriptions :column="2" bordered>
           <a-descriptions-item label="提交时间">
-            {{ formatTime(currentSubmit.createTime) }}
+            {{ formatTime(currentSubmit.submitTime || currentSubmit.createTime) }}
           </a-descriptions-item>
           <a-descriptions-item label="编程语言">
             <a-tag :color="getLanguageColor(currentSubmit.language)">{{ currentSubmit.language }}</a-tag>
@@ -201,11 +181,11 @@
               {{ getResultText(currentSubmit) }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="执行时间" v-if="currentSubmit.judgeInfo?.time">
-            {{ currentSubmit.judgeInfo.time }} ms
+          <a-descriptions-item label="执行时间" v-if="getJudgeTime(currentSubmit.judgeInfo)">
+            {{ getJudgeTime(currentSubmit.judgeInfo) }} ms
           </a-descriptions-item>
-          <a-descriptions-item label="内存占用" v-if="currentSubmit.judgeInfo?.memory">
-            {{ currentSubmit.judgeInfo.memory }} KB
+          <a-descriptions-item label="内存占用" v-if="getJudgeMemory(currentSubmit.judgeInfo)">
+            {{ getJudgeMemory(currentSubmit.judgeInfo) }} KB
           </a-descriptions-item>
         </a-descriptions>
 
@@ -228,54 +208,46 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watchEffect, withDefaults, defineProps, onUnmounted, computed } from "vue";
+import { onMounted, ref, watchEffect, onUnmounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import message from "@arco-design/web-vue/es/message";
 import CodeEditor from "@/components/CodeEditor.vue";
 import MdViewer from "@/components/MdViewer.vue";
-import {
-  QuestionControllerService,
-  QuestionSubmitAddRequest,
-  QuestionVO,
-  QuestionSubmitQueryRequest,
-} from "../../../generated";
+import { QuestionControllerService } from "../../../generated";
+import { doContestSubmitUsingPost, listContestSubmitByPageUsingPost, getContestSubmitByIdUsingGet } from "@/api/contestSubmitController";
 
-interface Props {
-  id: string;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  id: () => "",
-});
-
-const question = ref<QuestionVO>();
 const router = useRouter();
 const route = useRoute();
 const store = useStore();
 
+const question = ref<any>(null);
+const questionLabel = ref("");
+const contestId = ref<number>(0);
+
 // 当前激活的tab
 const activeTab = ref('question');
 
-const loadData = async () => {
-  const res = await QuestionControllerService.getQuestionVoByIdUsingGet(
-    props.id as any,
-  );
-  if (res.code === 0) {
-    console.log("res.data", res.data);
-    question.value = res.data;
-  } else {
-    message.error("加载失败，" + res.message);
-  }
-};
-
-const form = ref<QuestionSubmitAddRequest>({
+const form = ref({
   language: "java",
   code: "",
 });
 
-// 提交相关状态
+// 提交相关
 const isSubmitting = ref(false);
+
+// ========== 我的提交记录相关（参考ViewQuestionView.vue） ==========
+const mySubmitsLoading = ref(false);
+const mySubmitsList = ref<any[]>([]);
+const mySubmitsPagination = computed(() => ({
+  current: mySubmitsCurrentPage.value,
+  pageSize: 10,
+  total: mySubmitsTotal.value,
+}));
+const mySubmitsCurrentPage = ref(1);
+const mySubmitsTotal = ref(0);
+
+// 判题结果弹窗
 const resultModalVisible = ref(false);
 const isPolling = ref(false);
 const judgeResult = ref<any>(null);
@@ -285,18 +257,123 @@ let pollingTimer: any = null;
 const detailModalVisible = ref(false);
 const currentSubmit = ref<any>(null);
 
-/**
- * 提交代码
- */
-const doSubmit = async () => {
-  if (!question.value?.id) {
+const changeCode = (value: string) => {
+  form.value.code = value;
+};
+
+// 加载题目
+const loadData = async () => {
+  const questionId = route.params.questionId as string;
+  contestId.value = Number(route.params.id);
+  questionLabel.value = (route.query.label as string) || "A";
+
+  if (!questionId) return;
+
+  const res = await QuestionControllerService.getQuestionVoByIdUsingGet(questionId as any);
+  if (res.code === 0) {
+    question.value = res.data;
+  } else {
+    message.error("加载失败，" + res.message);
+  }
+};
+
+// 加载我的提交记录
+const loadMySubmits = async () => {
+  if (!question.value?.id) return;
+
+  const loginUser = store.state.user.loginUser;
+  if (!loginUser || !loginUser.id) {
+    mySubmitsList.value = [];
     return;
   }
+
+  mySubmitsLoading.value = true;
+  try {
+    const res = await listContestSubmitByPageUsingPost({
+      contestId: contestId.value,
+      questionId: question.value.id,
+      userId: loginUser.id,
+      current: mySubmitsCurrentPage.value,
+      pageSize: 10,
+    });
+    if (res.data?.code === 0 || res.code === 0) {
+      const resData = res.data?.data || res.data;
+      mySubmitsList.value = resData?.records || [];
+      mySubmitsTotal.value = resData?.total || 0;
+    }
+  } catch (error) {
+    message.error("加载提交记录失败");
+  } finally {
+    mySubmitsLoading.value = false;
+  }
+};
+
+// 刷新我的提交记录
+const refreshMySubmits = () => {
+  mySubmitsCurrentPage.value = 1;
+  loadMySubmits();
+};
+
+// 分页变化
+const onMySubmitsPageChange = (page: number) => {
+  mySubmitsCurrentPage.value = page;
+  loadMySubmits();
+};
+
+// 查看提交详情
+const viewSubmitDetail = async (record: any) => {
+  try {
+    // 通过API获取完整提交详情（包含代码）
+    const res = await getContestSubmitByIdUsingGet(record.id);
+    if (res.data?.code === 0 || res.code === 0) {
+      currentSubmit.value = res.data?.data || res.data;
+      detailModalVisible.value = true;
+    } else {
+      // 如果API失败，直接使用列表数据
+      currentSubmit.value = record;
+      detailModalVisible.value = true;
+    }
+  } catch (error) {
+    // 直接使用列表数据
+    currentSubmit.value = record;
+    detailModalVisible.value = true;
+  }
+};
+
+// 关闭详情弹窗
+const closeDetailModal = () => {
+  detailModalVisible.value = false;
+  currentSubmit.value = null;
+};
+
+// 跳转到我的提交记录tab
+const goToMySubmits = () => {
+  resultModalVisible.value = false;
+  activeTab.value = 'mySubmit';
+  mySubmitsCurrentPage.value = 1;
+  loadMySubmits();
+};
+
+// 复制代码
+const copyCode = () => {
+  if (!currentSubmit.value?.code) {
+    message.warning("没有可复制的代码");
+    return;
+  }
+  navigator.clipboard.writeText(currentSubmit.value.code).then(() => {
+    message.success("代码已复制到剪贴板");
+  }).catch(() => {
+    message.error("复制失败");
+  });
+};
+
+// 提交代码
+const doSubmit = async () => {
+  if (!question.value?.id) return;
   if (isSubmitting.value) {
     message.warning("正在提交中，请勿重复点击");
     return;
   }
-
   if (!form.value.code || form.value.code.trim() === '') {
     message.error("请输入代码");
     return;
@@ -308,21 +385,23 @@ const doSubmit = async () => {
   judgeResult.value = null;
 
   try {
-    const res = await QuestionControllerService.doQuestionSubmitUsingPost({
-      ...form.value,
+    const res = await doContestSubmitUsingPost({
+      contestId: contestId.value,
       questionId: question.value.id,
+      language: form.value.language,
+      code: form.value.code,
     });
-    if (res.code === 0) {
+    if (res.data?.code === 0 || res.code === 0) {
       message.success("提交成功，正在判题...");
-      // 开始轮询判题结果
-      startPolling(res.data);
+      const submitId = res.data?.data || res.data;
+      startPolling(submitId);
     } else {
-      message.error("提交失败," + res.message);
+      message.error("提交失败，" + (res.data?.message || res.message));
       resultModalVisible.value = false;
       isPolling.value = false;
     }
-  } catch (error) {
-    message.error("提交失败");
+  } catch (error: any) {
+    message.error("提交失败，" + (error.message || "系统错误"));
     resultModalVisible.value = false;
     isPolling.value = false;
   } finally {
@@ -330,9 +409,7 @@ const doSubmit = async () => {
   }
 };
 
-/**
- * 开始轮询判题结果
- */
+// 开始轮询判题结果
 const startPolling = (submitId: number) => {
   let pollCount = 0;
   const maxPollCount = 60;
@@ -347,19 +424,21 @@ const startPolling = (submitId: number) => {
     }
 
     try {
-      const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost({
-        current: 1,
-        pageSize: 1,
-        id: submitId as any,
-      });
-
-      if (res.code === 0 && res.data?.records && res.data.records.length > 0) {
-        const record = res.data.records[0];
-        // 状态：0-待判题，1-判题中，2-成功，3-失败
-        if (record.status === '2' || record.status === '3') {
-          judgeResult.value = record;
-          isPolling.value = false;
-          stopPolling();
+      const res = await getContestSubmitByIdUsingGet(submitId);
+      if ((res.data?.code === 0 || res.code === 0)) {
+        const record = res.data?.data || res.data;
+        if (record) {
+          // 状态：0-待判题，1-判题中，2-成功，3-失败
+          if (record.status === '2' || record.status === '3') {
+            judgeResult.value = record;
+            isPolling.value = false;
+            stopPolling();
+            // 刷新提交记录列表
+            mySubmitsCurrentPage.value = 1;
+            loadMySubmits();
+          } else {
+            pollingTimer = setTimeout(poll, 500);
+          }
         } else {
           pollingTimer = setTimeout(poll, 500);
         }
@@ -367,7 +446,6 @@ const startPolling = (submitId: number) => {
         pollingTimer = setTimeout(poll, 500);
       }
     } catch (error) {
-      console.error("轮询失败:", error);
       pollingTimer = setTimeout(poll, 500);
     }
   };
@@ -375,9 +453,7 @@ const startPolling = (submitId: number) => {
   poll();
 };
 
-/**
- * 停止轮询
- */
+// 停止轮询
 const stopPolling = () => {
   if (pollingTimer) {
     clearTimeout(pollingTimer);
@@ -385,15 +461,62 @@ const stopPolling = () => {
   }
 };
 
-/**
- * 获取判题结果颜色 - 根据 judgeInfo.message 或 status 判断
- */
+// 关闭结果弹窗
+const closeResultModal = () => {
+  resultModalVisible.value = false;
+};
+
+// Tab切换事件
+const handleTabClick = (key: string) => {
+  if (key === 'mySubmit') {
+    mySubmitsCurrentPage.value = 1;
+    loadMySubmits();
+  }
+};
+
+// 格式化时间
+const formatTime = (time: string) => {
+  if (!time) return "-";
+  const date = new Date(time);
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
+// 获取状态颜色（0-待判题，1-判题中，2-成功，3-失败）
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case '0': return 'gray';
+    case '1': return 'blue';
+    case '2': return 'green';
+    case '3': return 'red';
+    default: return 'gray';
+  }
+};
+
+// 获取状态文本
+const getStatusText = (status: string) => {
+  switch (status) {
+    case '0': return '待判题';
+    case '1': return '判题中';
+    case '2': return '成功';
+    case '3': return '失败';
+    default: return '未知状态';
+  }
+};
+
+// 获取判题结果颜色 - 根据 judgeInfo.message 或 status 判断
 const getResultColor = (record: any) => {
   if (!record) return 'gray';
   const judgeInfo = record.judgeInfo;
   let msg = null;
 
-  // 解析 judgeInfo（可能是对象或字符串）
+  // 解析 judgeInfo
   if (judgeInfo) {
     if (typeof judgeInfo === 'string') {
       try {
@@ -433,15 +556,13 @@ const getResultColor = (record: any) => {
   return 'gray';
 };
 
-/**
- * 获取判题结果文本
- */
+// 获取判题结果文本
 const getResultText = (record: any) => {
   if (!record) return '-';
   const judgeInfo = record.judgeInfo;
   let msg = null;
 
-  // 解析 judgeInfo（可能是对象或字符串）
+  // 解析 judgeInfo
   if (judgeInfo) {
     if (typeof judgeInfo === 'string') {
       try {
@@ -499,140 +620,38 @@ const getResultText = (record: any) => {
   return '-';
 };
 
-/**
- * 跳转到我的提交记录tab
- */
-const goToSubmitList = () => {
-  resultModalVisible.value = false;
-  activeTab.value = 'mySubmit';
-  mySubmitsCurrentPage.value = 1;
-  loadMySubmits();
-};
-
-// ========== 我的提交记录相关 ==========
-const mySubmitsLoading = ref(false);
-const mySubmitsList = ref<any[]>([]);
-const mySubmitsPagination = computed(() => ({
-  current: mySubmitsCurrentPage.value,
-  pageSize: 10,
-  total: mySubmitsTotal.value,
-}));
-const mySubmitsCurrentPage = ref(1);
-const mySubmitsTotal = ref(0);
-
-/**
- * 加载我的提交记录
- */
-const loadMySubmits = async () => {
-  if (!question.value?.id) return;
-
-  const loginUser = store.state.user.loginUser;
-  if (!loginUser || !loginUser.id) {
-    mySubmitsList.value = [];
-    return;
-  }
-
-  mySubmitsLoading.value = true;
+// 解析判题信息
+const getJudgeMessage = (judgeInfo: string) => {
+  if (!judgeInfo) return '-';
   try {
-    const params: QuestionSubmitQueryRequest = {
-      current: mySubmitsCurrentPage.value,
-      pageSize: 10,
-      questionId: question.value.id,
-      userId: loginUser.id,
-      sortField: "createTime",
-      sortOrder: "descend",
-    };
-
-    const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost(params);
-    if (res.code === 0) {
-      mySubmitsList.value = res.data?.records || [];
-      mySubmitsTotal.value = res.data?.total || 0;
-    } else {
-      message.error("加载失败：" + res.message);
-    }
-  } catch (error) {
-    message.error("加载提交记录失败");
-  } finally {
-    mySubmitsLoading.value = false;
+    const info = JSON.parse(judgeInfo);
+    return info?.message || '-';
+  } catch {
+    return judgeInfo;
   }
 };
 
-/**
- * 刷新我的提交记录
- */
-const refreshMySubmits = () => {
-  mySubmitsCurrentPage.value = 1;
-  loadMySubmits();
-};
-
-/**
- * 分页变化
- */
-const onMySubmitsPageChange = (page: number) => {
-  mySubmitsCurrentPage.value = page;
-  loadMySubmits();
-};
-
-/**
- * 查看提交详情
- */
-const viewSubmitDetail = (record: any) => {
-  currentSubmit.value = record;
-  detailModalVisible.value = true;
-};
-
-/**
- * 关闭详情弹窗
- */
-const closeDetailModal = () => {
-  detailModalVisible.value = false;
-  currentSubmit.value = null;
-};
-
-/**
- * 复制代码
- */
-const copyCode = () => {
-  if (!currentSubmit.value?.code) {
-    message.warning("没有可复制的代码");
-    return;
-  }
-  navigator.clipboard.writeText(currentSubmit.value.code).then(() => {
-    message.success("代码已复制到剪贴板");
-  }).catch(() => {
-    message.error("复制失败");
-  });
-};
-
-/**
- * Tab切换事件
- */
-const handleTabClick = (key: string) => {
-  if (key === 'mySubmit') {
-    mySubmitsCurrentPage.value = 1;
-    loadMySubmits();
+const getJudgeTime = (judgeInfo: any) => {
+  if (!judgeInfo) return null;
+  try {
+    const info = typeof judgeInfo === 'string' ? JSON.parse(judgeInfo) : judgeInfo;
+    return info?.time || null;
+  } catch {
+    return null;
   }
 };
 
-/**
- * 格式化时间
- */
-const formatTime = (time: string) => {
-  if (!time) return "-";
-  const date = new Date(time);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+const getJudgeMemory = (judgeInfo: any) => {
+  if (!judgeInfo) return null;
+  try {
+    const info = typeof judgeInfo === 'string' ? JSON.parse(judgeInfo) : judgeInfo;
+    return info?.memory || null;
+  } catch {
+    return null;
+  }
 };
 
-/**
- * 获取语言颜色
- */
+// 获取语言颜色
 const getLanguageColor = (language: string) => {
   const colorMap: Record<string, string> = {
     java: "orange",
@@ -641,46 +660,34 @@ const getLanguageColor = (language: string) => {
     python: "green",
     go: "cyan",
     javascript: "gold",
-    typescript: "arcoblue",
   };
   return colorMap[language?.toLowerCase()] || "gray";
 };
 
-/**
- * 页面加载时，请求数据
- */
 onMounted(() => {
   loadData();
 });
 
-/**
- * 组件销毁时清理定时器
- */
 onUnmounted(() => {
   stopPolling();
 });
 
-/**
- * 等question.value?.sourceCode有值之后再赋值
- */
+// 等question.value?.sourceCode有值之后再赋值
 watchEffect(() => {
   if (question.value?.sourceCode) {
     form.value.code = question.value.sourceCode;
   }
 });
-
-const changeCode = (value: string) => {
-  form.value.code = value;
-};
 </script>
 
 <style>
-#viewQuestionView {
+#contestQuestionView {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 20px;
 }
 
-#viewQuestionView .arco-space-horizontal .arco-space-item {
+#contestQuestionView .arco-space-horizontal .arco-space-item {
   margin-bottom: 0 !important;
 }
 
