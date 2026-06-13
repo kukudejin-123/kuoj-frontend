@@ -89,6 +89,7 @@
               <a-option value="IGNORE_CASE">忽略大小写</a-option>
               <a-option value="FLOAT">浮点数精度比较</a-option>
               <a-option value="MULTI_ANSWER">多解判断</a-option>
+              <a-option value="TESTLIB">自定义SPJ判题</a-option>
             </a-select>
             <div style="margin-top: 8px; color: #666; font-size: 12px;">
               <div v-if="form.judgeConfig.judgeMode === 'DEFAULT'"><strong>默认：</strong>输出必须与期望完全一致（去除首尾空格后）</div>
@@ -96,6 +97,7 @@
               <div v-if="form.judgeConfig.judgeMode === 'IGNORE_CASE'"><strong>忽略大小写：</strong>适用于判断题（YES/Yes/yes 都算正确）</div>
               <div v-if="form.judgeConfig.judgeMode === 'FLOAT'"><strong>浮点数：</strong>适用于计算结果为小数的题目，允许一定误差</div>
               <div v-if="form.judgeConfig.judgeMode === 'MULTI_ANSWER'"><strong>多解判断：</strong>答案有多种可能，在下方配置可接受答案列表</div>
+              <div v-if="form.judgeConfig.judgeMode === 'TESTLIB'"><strong>自定义SPJ：</strong>使用自定义程序判题，适用于答案不唯一的题目</div>
             </div>
           </a-form-item>
           <a-form-item
@@ -129,6 +131,52 @@
               用户输出在此列表中即算正确，例如判断题可添加：YES、Yes、yes、Y、y
             </div>
           </a-form-item>
+          <!-- SPJ 配置 -->
+          <a-form-item
+            v-if="form.judgeConfig.judgeMode === 'TESTLIB'"
+            field="judgeConfig.spjCode"
+            label="SPJ程序代码"
+          >
+            <a-space direction="vertical" style="width: 100%;">
+              <a-select v-model="form.judgeConfig.spjLanguage" style="width: 120px;">
+                <a-option value="java">Java</a-option>
+              </a-select>
+              <a-textarea
+                v-model="form.judgeConfig.spjCode"
+                placeholder="请输入 SPJ 程序代码"
+                :auto-size="{ minRows: 10, maxRows: 30 }"
+                style="font-family: monospace;"
+              />
+              <div style="color: #666; font-size: 12px;">
+                <div><strong>SPJ 程序说明：</strong></div>
+                <div>1. 程序接收三个参数：args[0]=输入文件, args[1]=用户输出文件, args[2]=标准答案文件</div>
+                <div>2. 退出码 0 = Accepted, 1 = Wrong Answer, 2 = Presentation Error, 3 = System Error</div>
+                <div>3. 继承 Testlib 类可使用 inf/ouf/ans 输入流和 ok()/wrongAnswer() 等方法</div>
+              </div>
+              <a-collapse :default-active-key="['1']" style="margin-top: 8px;">
+                <a-collapse-item key="1" header="SPJ 代码示例（判断输出是否为质数）">
+                  <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 12px;">import com.kkdj.testlib.Testlib;
+import com.kkdj.testlib.CheckerUtils;
+
+public class SpjChecker extends Testlib {
+    public static void main(String[] args) {
+        init(args);  // 初始化，自动读取三个文件
+
+        // 读取用户输出
+        int n = ouf.readInt();
+
+        // 验证是否是质数
+        if (CheckerUtils.isPrime(n)) {
+            ok("Answer is a prime number");
+        } else {
+            wrongAnswer(n + " is not a prime number");
+        }
+    }
+}</pre>
+                </a-collapse-item>
+              </a-collapse>
+            </a-space>
+          </a-form-item>
         </a-space>
       </a-form-item>
       <a-form-item
@@ -147,14 +195,15 @@
               :field="`judgeCase[${index}].input`"
               :label="`输入用例-${index + 1}`"
               :key="index"
-              :required="true"
-              :rules="[{ required: true, message: '测试输入不能为空' }]"
             >
               <a-textarea
                 v-model="judgeCaseItem.input"
-                placeholder="请输入测试输入用例"
+                placeholder="请输入测试输入用例（可为空）"
                 :auto-size="{ minRows: 2, maxRows: 6 }"
               />
+              <div v-if="form.judgeConfig.judgeMode === 'TESTLIB'" style="color: #999; font-size: 12px; margin-top: 4px;">
+                SPJ模式：输入可为空，SPJ程序可通过 inf 读取
+              </div>
             </a-form-item>
             <a-form-item
               :field="`judgeCase[${index}].output`"
@@ -168,6 +217,9 @@
                 placeholder="请输入测试输出用例"
                 :auto-size="{ minRows: 2, maxRows: 6 }"
               />
+              <div v-if="form.judgeConfig.judgeMode === 'TESTLIB'" style="color: #999; font-size: 12px; margin-top: 4px;">
+                SPJ模式：此输出仅作参考，实际由SPJ程序判题
+              </div>
             </a-form-item>
             <a-button
               status="danger"
@@ -239,6 +291,8 @@ const defaultForm = {
     judgeMode: "DEFAULT",
     floatPrecision: 1e-6,
     acceptableOutputs: [] as string[],
+    spjCode: "",
+    spjLanguage: "java",
   },
   judgeCase: [
     {
@@ -263,6 +317,8 @@ const resetForm = () => {
     judgeConfig: {
       ...defaultForm.judgeConfig,
       acceptableOutputs: [],
+      spjCode: "",
+      spjLanguage: "java",
     },
   };
 };
@@ -300,6 +356,8 @@ const loadData = async () => {
         judgeMode: "DEFAULT",
         floatPrecision: 1e-6,
         acceptableOutputs: [],
+        spjCode: "",
+        spjLanguage: "java",
       };
     } else {
       form.value.judgeConfig = JSON.parse(form.value.judgeConfig as any);
@@ -318,6 +376,14 @@ const loadData = async () => {
       // 兼容旧数据，没有 acceptableOutputs 的默认为空数组
       if (!form.value.judgeConfig.acceptableOutputs) {
         form.value.judgeConfig.acceptableOutputs = [];
+      }
+      // 兼容旧数据，没有 spjCode 的默认为空字符串
+      if (!form.value.judgeConfig.spjCode) {
+        form.value.judgeConfig.spjCode = "";
+      }
+      // 兼容旧数据，没有 spjLanguage 的默认为 java
+      if (!form.value.judgeConfig.spjLanguage) {
+        form.value.judgeConfig.spjLanguage = "java";
       }
     }
     if (!form.value.tags) {
@@ -358,11 +424,20 @@ const validateForm = (): string | null => {
   }
   for (let i = 0; i < form.value.judgeCase.length; i++) {
     const testCase = form.value.judgeCase[i];
-    if (!testCase.input || testCase.input.trim() === "") {
-      return `测试用例 ${i + 1} 的输入不能为空`;
+    // TESTLIB 模式下输入可以为空
+    if (form.value.judgeConfig.judgeMode !== "TESTLIB") {
+      if (!testCase.input || testCase.input.trim() === "") {
+        return `测试用例 ${i + 1} 的输入不能为空`;
+      }
     }
     if (!testCase.output || testCase.output.trim() === "") {
       return `测试用例 ${i + 1} 的输出不能为空`;
+    }
+  }
+  // TESTLIB 模式需要验证 SPJ 代码
+  if (form.value.judgeConfig.judgeMode === "TESTLIB") {
+    if (!form.value.judgeConfig.spjCode || form.value.judgeConfig.spjCode.trim() === "") {
+      return "TESTLIB 模式需要提供 SPJ 程序代码";
     }
   }
   return null;
