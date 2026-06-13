@@ -20,6 +20,7 @@ import ContestsView from "@/views/contest/ContestsView.vue";
 import ContestDetailView from "@/views/contest/ContestDetailView.vue";
 import ContestQuestionView from "@/views/contest/ContestQuestionView.vue";
 import CreateContestView from "@/views/contest/CreateContestView.vue";
+import RankingView from "@/views/ranking/RankingView.vue";
 
 export const routes: Array<RouteRecordRaw> = [
   {
@@ -187,6 +188,14 @@ export const routes: Array<RouteRecordRaw> = [
     meta: {
       access: ACCESS_ENUM.ADMIN,
       hideInMenu: true,
+    },
+  },
+  {
+    path: "/ranking",
+    name: "排行榜",
+    component: RankingView,
+    meta: {
+      access: ACCESS_ENUM.USER,
     },
   },
 ];

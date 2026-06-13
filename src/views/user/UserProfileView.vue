@@ -56,7 +56,9 @@
           </a-col>
           <a-col :span="8">
             <a-card>
-              <a-statistic title="通过率" :value="statistics.acceptRate" suffix="%" :precision="1" />
+              <a-statistic title="通过率" :value="statistics.acceptRate" :precision="1">
+                <template #suffix>%</template>
+              </a-statistic>
             </a-card>
           </a-col>
         </a-row>
@@ -185,27 +187,29 @@ const loadUserInfo = async () => {
 // 加载统计数据
 const loadStatistics = async () => {
   try {
-    // 获取用户提交记录
+    // 调用统计接口获取提交次数和通过次数
+    const statRes = await QuestionControllerService.getUserSubmitStatisticsUsingGet();
+    if (statRes.code === 0 && statRes.data) {
+      // 后端 Long 类型返回字符串，需要转换为数字
+      statistics.submitCount = Number(statRes.data.submitCount) || 0;
+      statistics.acceptCount = Number(statRes.data.acceptCount) || 0;
+
+      if (statistics.submitCount > 0) {
+        statistics.acceptRate = (statistics.acceptCount / statistics.submitCount) * 100;
+      }
+    }
+
+    // 获取最近提交记录
     const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost({
       current: 1,
-      pageSize: 100,
+      pageSize: 10,
       userId: userInfo.value.id,
       sortField: "createTime",
       sortOrder: "descend",
     });
 
     if (res.code === 0 && res.data) {
-      const records = res.data.records || [];
-      submitList.value = records.slice(0, 10); // 只显示最近10条
-
-      statistics.submitCount = res.data.total || 0;
-      statistics.acceptCount = records.filter(
-        (r: any) => r.judgeInfo?.message === "成功"
-      ).length;
-
-      if (statistics.submitCount > 0) {
-        statistics.acceptRate = (statistics.acceptCount / statistics.submitCount) * 100;
-      }
+      submitList.value = res.data.records || [];
     }
   } catch (error) {
     console.error("加载统计数据失败", error);

@@ -121,6 +121,13 @@ requestBody?: QuestionSubmitQueryRequest,
         });
     }
 
+    public static getUserSubmitStatisticsUsingGet(): CancelablePromise<{ code: number; data: { submitCount: number; acceptCount: number }; message: string }> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/question/question_submit/statistics',
+        });
+    }
+
     public static updateQuestionUsingPost(
 requestBody?: QuestionUpdateRequest,
 ): CancelablePromise<BaseResponse_long_> {

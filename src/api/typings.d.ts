@@ -1129,4 +1129,68 @@ declare namespace API {
     data?: ContestVO[];
     message?: string;
   };
+
+  // ==================== 排行榜相关类型 ====================
+
+  type UserRankingQueryRequest = {
+    userId?: number;
+    userName?: string;
+    current?: number;
+    pageSize?: number;
+    sortField?: string;
+    sortOrder?: string;
+  };
+
+  type UserRankingVO = {
+    id?: number;
+    userId?: number;
+    user?: UserVO;
+    totalContests?: number;
+    totalAccepted?: number;
+    totalSubmissions?: number;
+    rating?: number;
+    rank?: number;
+    createTime?: string;
+  };
+
+  type ContestRankingVO = {
+    rank?: number;
+    userId?: number;
+    user?: UserVO;
+    acceptedCount?: number;
+    totalTime?: number;
+    problemStats?: { [key: string]: number[] };
+    lastSubmitTime?: string;
+  };
+
+  type PageUserRankingVO_ = {
+    countId?: string;
+    current?: number;
+    maxLimit?: number;
+    optimizeCountSql?: boolean;
+    orders?: OrderItem[];
+    pages?: number;
+    records?: UserRankingVO[];
+    searchCount?: boolean;
+    size?: number;
+    total?: number;
+  };
+
+  type BaseResponsePageUserRankingVO_ = {
+    code?: number;
+    data?: PageUserRankingVO_;
+    message?: string;
+  };
+
+  type BaseResponseUserRankingVO_ = {
+    code?: number;
+    data?: UserRankingVO;
+    message?: string;
+  };
+
+  type BaseResponseListContestRankingVO_ = {
+    code?: number;
+    data?: ContestRankingVO[];
+    message?: string;
+  };
 }

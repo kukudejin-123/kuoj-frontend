@@ -1,6 +1,53 @@
 <template>
   <div id="contestQuestionView">
-    <a-row :gutter="[24, 24]">
+    <!-- 左侧题目侧边栏 -->
+    <div class="sidebar-trigger" @click="sidebarVisible = !sidebarVisible">
+      <div class="trigger-content">
+        <icon-unordered-list v-if="!sidebarVisible" />
+        <icon-menu-fold v-else />
+        <span class="trigger-text">题目</span>
+      </div>
+    </div>
+
+    <!-- 侧边栏 -->
+    <transition name="slide">
+      <div v-if="sidebarVisible" class="sidebar-panel">
+        <div class="sidebar-header">
+          <span class="sidebar-title">题目列表</span>
+          <a-button type="text" size="small" @click="sidebarVisible = false">
+            <icon-close />
+          </a-button>
+        </div>
+        <div class="sidebar-content">
+          <div
+            v-for="q in questionList"
+            :key="q.questionId"
+            :class="['question-item', currentQuestionId === q.questionId ? 'active' : '']"
+            @click="switchQuestion(q)"
+          >
+            <div class="question-label">{{ q.questionLabel }}</div>
+            <div class="question-info">
+              <div class="question-title">{{ q.title }}</div>
+              <div class="question-meta">
+                <span v-if="q.submitNum > 0" style="color: #86909c; font-size: 12px">
+                  通过率: {{ ((q.acceptedNum / q.submitNum) * 100).toFixed(1) }}%
+                </span>
+                <span v-else style="color: #86909c; font-size: 12px">暂无提交</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <a-button @click="goBackToContest" long type="outline">
+            返回比赛
+          </a-button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 主内容区域 -->
+    <div class="main-content" :style="{ marginLeft: sidebarVisible ? '200px' : '0' }">
+      <a-row :gutter="[24, 24]">
       <a-col :md="12" :xs="24">
         <a-tabs v-model:active-key="activeTab" @tab-click="handleTabClick">
           <a-tab-pane key="question" title="题目">
@@ -128,6 +175,7 @@
         </a-button>
       </a-col>
     </a-row>
+    </div>
 
     <!-- 判题结果弹窗 -->
     <a-modal
@@ -216,14 +264,20 @@ import CodeEditor from "@/components/CodeEditor.vue";
 import MdViewer from "@/components/MdViewer.vue";
 import { QuestionControllerService } from "../../../generated";
 import { doContestSubmitUsingPost, listContestSubmitByPageUsingPost, getContestSubmitByIdUsingGet } from "@/api/contestSubmitController";
+import { getContestQuestionsUsingGet } from "@/api/contestController";
+
+import { IconUnorderedList, IconMenuFold, IconClose } from "@arco-design/web-vue/es/icon";
 
 const router = useRouter();
 const route = useRoute();
 const store = useStore();
 
+const sidebarVisible = ref(true);
 const question = ref<any>(null);
 const questionLabel = ref("");
 const contestId = ref<number>(0);
+const currentQuestionId = ref<number>(0);
+const questionList = ref<any[]>([]);
 
 // 当前激活的tab
 const activeTab = ref('question');
@@ -236,7 +290,7 @@ const form = ref({
 // 提交相关
 const isSubmitting = ref(false);
 
-// ========== 我的提交记录相关（参考ViewQuestionView.vue） ==========
+// ========== 我的提交记录相关 ==========
 const mySubmitsLoading = ref(false);
 const mySubmitsList = ref<any[]>([]);
 const mySubmitsPagination = computed(() => ({
@@ -261,19 +315,76 @@ const changeCode = (value: string) => {
   form.value.code = value;
 };
 
-// 加载题目
-const loadData = async () => {
-  const questionId = route.params.questionId as string;
-  contestId.value = Number(route.params.id);
-  questionLabel.value = (route.query.label as string) || "A";
+// 加载比赛题目列表
+const loadQuestionList = async () => {
+  const id = route.params.id as string;
+  if (!id) return;
 
+  const res = await getContestQuestionsUsingGet(Number(id));
+  if (res.data?.code === 0 || res.code === 0) {
+    const resData = res.data?.data || res.data;
+    if (resData && resData.length > 0) {
+      questionList.value = resData[0].questionList || [];
+    }
+  }
+};
+
+// 加载当前题目
+const loadQuestion = async (questionId: number) => {
   if (!questionId) return;
+
+  // 从列表中获取题目标签
+  const q = questionList.value.find(item => item.questionId === questionId);
+  if (q) {
+    questionLabel.value = q.questionLabel || "A";
+  }
 
   const res = await QuestionControllerService.getQuestionVoByIdUsingGet(questionId as any);
   if (res.code === 0) {
     question.value = res.data;
   } else {
     message.error("加载失败，" + res.message);
+  }
+};
+
+// 切换题目
+const switchQuestion = (q: any) => {
+  if (q.questionId === currentQuestionId.value) return;
+
+  // 更新路由
+  router.push(`/contest/${contestId.value}/question/${q.questionId}?label=${q.questionLabel}`);
+
+  // 加载新题目
+  currentQuestionId.value = q.questionId;
+  questionLabel.value = q.questionLabel;
+  loadQuestion(q.questionId);
+
+  // 重置提交记录
+  mySubmitsCurrentPage.value = 1;
+  mySubmitsList.value = [];
+
+  // 重置代码
+  form.value.code = "";
+};
+
+// 返回比赛详情
+const goBackToContest = () => {
+  router.push(`/contest/${contestId.value}`);
+};
+
+// 初始化加载数据
+const loadData = async () => {
+  const questionId = route.params.questionId as string;
+  contestId.value = Number(route.params.id);
+
+  // 先加载题目列表
+  await loadQuestionList();
+
+  // 加载当前题目
+  if (questionId) {
+    currentQuestionId.value = Number(questionId);
+    questionLabel.value = (route.query.label as string) || "A";
+    await loadQuestion(Number(questionId));
   }
 };
 
@@ -323,18 +434,15 @@ const onMySubmitsPageChange = (page: number) => {
 // 查看提交详情
 const viewSubmitDetail = async (record: any) => {
   try {
-    // 通过API获取完整提交详情（包含代码）
     const res = await getContestSubmitByIdUsingGet(record.id);
     if (res.data?.code === 0 || res.code === 0) {
       currentSubmit.value = res.data?.data || res.data;
       detailModalVisible.value = true;
     } else {
-      // 如果API失败，直接使用列表数据
       currentSubmit.value = record;
       detailModalVisible.value = true;
     }
   } catch (error) {
-    // 直接使用列表数据
     currentSubmit.value = record;
     detailModalVisible.value = true;
   }
@@ -428,12 +536,10 @@ const startPolling = (submitId: number) => {
       if ((res.data?.code === 0 || res.code === 0)) {
         const record = res.data?.data || res.data;
         if (record) {
-          // 状态：0-待判题，1-判题中，2-成功，3-失败
           if (record.status === '2' || record.status === '3') {
             judgeResult.value = record;
             isPolling.value = false;
             stopPolling();
-            // 刷新提交记录列表
             mySubmitsCurrentPage.value = 1;
             loadMySubmits();
           } else {
@@ -488,35 +594,12 @@ const formatTime = (time: string) => {
   });
 };
 
-// 获取状态颜色（0-待判题，1-判题中，2-成功，3-失败）
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case '0': return 'gray';
-    case '1': return 'blue';
-    case '2': return 'green';
-    case '3': return 'red';
-    default: return 'gray';
-  }
-};
-
-// 获取状态文本
-const getStatusText = (status: string) => {
-  switch (status) {
-    case '0': return '待判题';
-    case '1': return '判题中';
-    case '2': return '成功';
-    case '3': return '失败';
-    default: return '未知状态';
-  }
-};
-
-// 获取判题结果颜色 - 根据 judgeInfo.message 或 status 判断
+// 获取判题结果颜色
 const getResultColor = (record: any) => {
   if (!record) return 'gray';
   const judgeInfo = record.judgeInfo;
   let msg = null;
 
-  // 解析 judgeInfo
   if (judgeInfo) {
     if (typeof judgeInfo === 'string') {
       try {
@@ -530,16 +613,13 @@ const getResultColor = (record: any) => {
     }
   }
 
-  // 根据 message 判断颜色
   if (msg) {
     const m = msg.trim();
-    // 英文匹配
     if (m === 'Accepted') return 'green';
     if (m === 'Wrong Answer' || m === 'Runtime Error') return 'red';
     if (m === 'Time Limit Exceeded') return 'orange';
     if (m === 'Memory Limit Exceeded') return 'purple';
     if (m === 'Compile Error') return 'gray';
-    // 中文匹配（后端 getValue 返回中文）
     if (m === '成功') return 'green';
     if (m === '答案错误' || m === '运行错误') return 'red';
     if (m === '超时') return 'orange';
@@ -547,7 +627,6 @@ const getResultColor = (record: any) => {
     if (m === '编译错误') return 'gray';
   }
 
-  // 如果 message 为空或不匹配，根据 status 判断
   const status = record.status;
   if (status === '0') return 'gray';
   if (status === '1') return 'blue';
@@ -562,7 +641,6 @@ const getResultText = (record: any) => {
   const judgeInfo = record.judgeInfo;
   let msg = null;
 
-  // 解析 judgeInfo
   if (judgeInfo) {
     if (typeof judgeInfo === 'string') {
       try {
@@ -576,7 +654,6 @@ const getResultText = (record: any) => {
     }
   }
 
-  // 英文映射
   const enMap: Record<string, string> = {
     'Accepted': '通过',
     'Wrong Answer': '答案错误',
@@ -584,12 +661,7 @@ const getResultText = (record: any) => {
     'Memory Limit Exceeded': '内存超限',
     'Compile Error': '编译错误',
     'Runtime Error': '运行错误',
-    'Presentation Error': '格式错误',
-    'Output Limit Exceeded': '输出超限',
-    'Waiting': '等待中',
-    'System Error': '系统错误',
   };
-  // 中文映射（后端 getValue 返回中文）
   const cnMap: Record<string, string> = {
     '成功': '通过',
     '答案错误': '答案错误',
@@ -597,13 +669,8 @@ const getResultText = (record: any) => {
     '内存溢出': '内存超限',
     '编译错误': '编译错误',
     '运行错误': '运行错误',
-    '展示错误': '格式错误',
-    '输出溢出': '输出超限',
-    '等待中': '等待中',
-    '系统错误': '系统错误',
   };
 
-  // 优先使用 message
   if (msg) {
     const m = msg.trim();
     if (enMap[m]) return enMap[m];
@@ -611,24 +678,12 @@ const getResultText = (record: any) => {
     if (m !== '-') return m;
   }
 
-  // 最后根据 status 判断
   const status = record.status;
   if (status === '0') return '待判题';
   if (status === '1') return '判题中';
   if (status === '2') return '通过';
   if (status === '3') return '失败';
   return '-';
-};
-
-// 解析判题信息
-const getJudgeMessage = (judgeInfo: string) => {
-  if (!judgeInfo) return '-';
-  try {
-    const info = JSON.parse(judgeInfo);
-    return info?.message || '-';
-  } catch {
-    return judgeInfo;
-  }
 };
 
 const getJudgeTime = (judgeInfo: any) => {
@@ -672,7 +727,6 @@ onUnmounted(() => {
   stopPolling();
 });
 
-// 等question.value?.sourceCode有值之后再赋值
 watchEffect(() => {
   if (question.value?.sourceCode) {
     form.value.code = question.value.sourceCode;
@@ -685,6 +739,162 @@ watchEffect(() => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
+  position: relative;
+}
+
+/* 侧边栏触发器 */
+.sidebar-trigger {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 80px;
+  background: #165dff;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+}
+
+.sidebar-trigger:hover {
+  width: 40px;
+  background: #4080ff;
+}
+
+.trigger-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  font-size: 18px;
+}
+
+.trigger-text {
+  font-size: 12px;
+  margin-top: 4px;
+  writing-mode: vertical-rl;
+}
+
+/* 侧边栏面板 */
+.sidebar-panel {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 200px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e5e6eb;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid #e5e6eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f7f8fa;
+}
+
+.sidebar-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #1d2129;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid #e5e6eb;
+}
+
+/* 题目项 */
+.question-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.question-item:hover {
+  background-color: #f2f3f5;
+}
+
+.question-item.active {
+  background-color: #e8f3ff;
+  border-left-color: #165dff;
+}
+
+.question-label {
+  width: 32px;
+  height: 32px;
+  background: #86909c;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.question-item.active .question-label {
+  background: #165dff;
+}
+
+.question-info {
+  margin-left: 12px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.question-title {
+  font-size: 14px;
+  color: #1d2129;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.question-item.active .question-title {
+  color: #165dff;
+  font-weight: 500;
+}
+
+.question-meta {
+  margin-top: 4px;
+}
+
+/* 主内容区域 */
+.main-content {
+  transition: margin-left 0.3s;
+}
+
+/* 动画 */
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-100%);
 }
 
 #contestQuestionView .arco-space-horizontal .arco-space-item {

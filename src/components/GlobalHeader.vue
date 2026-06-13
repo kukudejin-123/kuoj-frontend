@@ -54,16 +54,18 @@ const store = useStore();
 
 // 展示在菜单的路由数组
 const visibleRoutes = computed(() => {
+  const loginUser = store.state.user.loginUser;
   return routes.filter((item, index) => {
     if (item.meta?.hideInMenu) {
       return false;
     }
     // 根据权限过滤菜单
-    if (
-      !checkAccess(store.state.user.loginUser, item?.meta?.access as string)
-    ) {
-      return false;
+    const needAccess = (item.meta?.access as string) ?? ACCESS_ENUM.NOT_LOGIN;
+    // 如果需要管理员权限，只有管理员才能看到
+    if (needAccess === ACCESS_ENUM.ADMIN) {
+      return loginUser?.userRole === ACCESS_ENUM.ADMIN;
     }
+    // 其他菜单正常显示
     return true;
   });
 });
