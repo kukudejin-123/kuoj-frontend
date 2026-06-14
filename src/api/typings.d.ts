@@ -118,6 +118,12 @@ declare namespace API {
     message?: string;
   };
 
+  type BaseResponseMapStringLong_ = {
+    code?: number;
+    data?: { [key: string]: number };
+    message?: string;
+  };
+
   type BaseResponseLoginUserVO_ = {
     code?: number;
     data?: LoginUserVO;

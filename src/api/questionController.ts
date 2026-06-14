@@ -146,3 +146,13 @@ export async function getAllTagsUsingGet(
     ...(options || {}),
   });
 }
+
+/** getGlobalStatistics GET /api/question/statistics */
+export async function getGlobalStatisticsUsingGet(
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseMapStringLong_>('/question/statistics', {
+    method: 'GET',
+    ...(options || {}),
+  });
+}
