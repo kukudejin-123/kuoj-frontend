@@ -44,3 +44,14 @@ export async function listContestSubmitByPageUsingPost(
     ...(options || {}),
   });
 }
+
+/** 获取用户在比赛中已通过的题目ID列表 GET /contest_submit/accepted_questions */
+export async function getUserAcceptedQuestionsUsingGet(
+  contestId: number,
+  options?: { [key: string]: any },
+) {
+  return request<any>(`/contest_submit/accepted_questions?contestId=${contestId}`, {
+    method: 'GET',
+    ...(options || {}),
+  });
+}

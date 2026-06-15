@@ -590,18 +590,40 @@ const closeDetailModal = () => {
 };
 
 /**
- * 复制代码
+ * 复制代码 - 兼容HTTP环境
  */
-const copyCode = () => {
+const copyCode = async () => {
   if (!currentSubmit.value?.code) {
     message.warning("没有可复制的代码");
     return;
   }
-  navigator.clipboard.writeText(currentSubmit.value.code).then(() => {
-    message.success("代码已复制到剪贴板");
-  }).catch(() => {
+  const code = currentSubmit.value.code;
+  try {
+    // 优先使用 navigator.clipboard（需要HTTPS）
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(code);
+      message.success("代码已复制到剪贴板");
+    } else {
+      // 后备方案：使用 document.execCommand
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        message.success("代码已复制到剪贴板");
+      } catch (err) {
+        message.error("复制失败");
+      }
+      document.body.removeChild(textArea);
+    }
+  } catch (err) {
     message.error("复制失败");
-  });
+  }
 };
 
 /**

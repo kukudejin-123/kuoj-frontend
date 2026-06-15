@@ -58,6 +58,16 @@ export const routes: Array<RouteRecordRaw> = [
     },
   },
   {
+    path: "/user/profile/:userId",
+    name: "用户资料",
+    component: UserProfileView,
+    props: true,
+    meta: {
+      access: ACCESS_ENUM.USER,
+      hideInMenu: true,
+    },
+  },
+  {
     path: "/questions",
     name: "浏览题目",
     component: QuestionsView,

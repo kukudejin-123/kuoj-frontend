@@ -3,7 +3,7 @@
     <a-row :gutter="[24, 24]">
       <!-- 左侧：用户信息卡片 -->
       <a-col :md="8" :xs="24">
-        <a-card title="个人信息">
+        <a-card :title="isViewingOther ? '用户信息' : '个人信息'">
           <div style="text-align: center; margin-bottom: 24px;">
             <a-avatar :size="80" :style="{ backgroundColor: '#3370ff' }">
               {{ userInfo.userName ? userInfo.userName.charAt(0).toUpperCase() : 'U' }}
@@ -24,7 +24,8 @@
               {{ formatTime(userInfo.createTime) }}
             </a-descriptions-item>
           </a-descriptions>
-          <div style="margin-top: 24px; text-align: center;">
+          <!-- 只有查看自己的资料时才显示编辑按钮 -->
+          <div v-if="!isViewingOther" style="margin-top: 24px; text-align: center;">
             <a-button type="primary" @click="showEditModal">
               编辑资料
             </a-button>
@@ -113,17 +114,31 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive } from "vue";
-import { useRouter } from "vue-router";
+import { onMounted, ref, reactive, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { UserControllerService, QuestionControllerService } from "../../../generated";
 import message from "@arco-design/web-vue/es/message";
 import moment from "moment";
 
 const router = useRouter();
+const route = useRoute();
+
+// Props
+interface Props {
+  userId?: string;
+}
+const props = withDefaults(defineProps<Props>(), {
+  userId: () => "",
+});
 
 // 用户信息
 const userInfo = ref<any>({});
 const loading = ref(false);
+
+// 是否在查看其他用户的资料
+const isViewingOther = computed(() => {
+  return props.userId && props.userId !== "";
+});
 
 // 统计数据
 const statistics = reactive({
@@ -173,11 +188,23 @@ const columns = [
 // 加载用户信息
 const loadUserInfo = async () => {
   try {
-    const res = await UserControllerService.getLoginUserUsingGet();
-    if (res.code === 0 && res.data) {
-      userInfo.value = res.data;
+    if (isViewingOther.value) {
+      // 查看其他用户的资料（使用公开接口）
+      // 直接传递字符串，避免大数字精度丢失
+      const res = await UserControllerService.getUserVoByIdUsingGet({ id: props.userId as any });
+      if (res.code === 0 && res.data) {
+        userInfo.value = res.data;
+      } else {
+        message.error("获取用户信息失败");
+      }
     } else {
-      message.error("获取用户信息失败");
+      // 查看自己的资料
+      const res = await UserControllerService.getLoginUserUsingGet();
+      if (res.code === 0 && res.data) {
+        userInfo.value = res.data;
+      } else {
+        message.error("获取用户信息失败");
+      }
     }
   } catch (error) {
     message.error("获取用户信息失败");
@@ -187,29 +214,32 @@ const loadUserInfo = async () => {
 // 加载统计数据
 const loadStatistics = async () => {
   try {
-    // 调用统计接口获取提交次数和通过次数
-    const statRes = await QuestionControllerService.getUserSubmitStatisticsUsingGet();
-    if (statRes.code === 0 && statRes.data) {
-      // 后端 Long 类型返回字符串，需要转换为数字
-      statistics.submitCount = Number(statRes.data.submitCount) || 0;
-      statistics.acceptCount = Number(statRes.data.acceptCount) || 0;
-
-      if (statistics.submitCount > 0) {
-        statistics.acceptRate = (statistics.acceptCount / statistics.submitCount) * 100;
-      }
-    }
+    const targetUserId = isViewingOther.value ? props.userId : userInfo.value.id;
 
     // 获取最近提交记录
     const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost({
       current: 1,
       pageSize: 10,
-      userId: userInfo.value.id,
+      userId: targetUserId as any,
       sortField: "createTime",
       sortOrder: "descend",
     });
 
     if (res.code === 0 && res.data) {
       submitList.value = res.data.records || [];
+      // 计算统计数据
+      statistics.submitCount = res.data.total || 0;
+      // 统计通过次数
+      let acceptCount = 0;
+      submitList.value.forEach((item: any) => {
+        if (item.judgeInfo?.message === "成功" || item.status === "2") {
+          acceptCount++;
+        }
+      });
+      statistics.acceptCount = acceptCount;
+      if (statistics.submitCount > 0) {
+        statistics.acceptRate = (statistics.acceptCount / statistics.submitCount) * 100;
+      }
     }
   } catch (error) {
     console.error("加载统计数据失败", error);

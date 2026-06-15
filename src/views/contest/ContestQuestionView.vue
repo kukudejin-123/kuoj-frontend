@@ -25,9 +25,12 @@
             :class="['question-item', currentQuestionId === q.questionId ? 'active' : '']"
             @click="switchQuestion(q)"
           >
-            <div class="question-label">{{ q.questionLabel }}</div>
+            <div class="question-label" :style="acceptedQuestionIds.has(String(q.questionId)) ? { background: '#00b42a' } : {}">{{ q.questionLabel }}</div>
             <div class="question-info">
-              <div class="question-title">{{ q.title }}</div>
+              <div class="question-title">
+                {{ q.title }}
+                <a-tag v-if="acceptedQuestionIds.has(String(q.questionId))" color="green" size="small">已过</a-tag>
+              </div>
               <div class="question-meta">
                 <span v-if="q.submitNum > 0" style="color: #86909c; font-size: 12px">
                   通过率: {{ ((q.acceptedNum / q.submitNum) * 100).toFixed(1) }}%
@@ -263,7 +266,7 @@ import message from "@arco-design/web-vue/es/message";
 import CodeEditor from "@/components/CodeEditor.vue";
 import MdViewer from "@/components/MdViewer.vue";
 import { QuestionControllerService } from "../../../generated";
-import { doContestSubmitUsingPost, listContestSubmitByPageUsingPost, getContestSubmitByIdUsingGet } from "@/api/contestSubmitController";
+import { doContestSubmitUsingPost, listContestSubmitByPageUsingPost, getContestSubmitByIdUsingGet, getUserAcceptedQuestionsUsingGet } from "@/api/contestSubmitController";
 import { getContestQuestionsUsingGet } from "@/api/contestController";
 
 import { IconUnorderedList, IconMenuFold, IconClose } from "@arco-design/web-vue/es/icon";
@@ -275,9 +278,10 @@ const store = useStore();
 const sidebarVisible = ref(true);
 const question = ref<any>(null);
 const questionLabel = ref("");
-const contestId = ref<number>(0);
-const currentQuestionId = ref<number>(0);
+const contestId = ref<string>("");
+const currentQuestionId = ref<string>("");
 const questionList = ref<any[]>([]);
+const acceptedQuestionIds = ref<Set<string>>(new Set());
 
 // 当前激活的tab
 const activeTab = ref('question');
@@ -320,7 +324,7 @@ const loadQuestionList = async () => {
   const id = route.params.id as string;
   if (!id) return;
 
-  const res = await getContestQuestionsUsingGet(Number(id));
+  const res = await getContestQuestionsUsingGet(id as any);
   if (res.data?.code === 0 || res.code === 0) {
     const resData = res.data?.data || res.data;
     if (resData && resData.length > 0) {
@@ -330,11 +334,11 @@ const loadQuestionList = async () => {
 };
 
 // 加载当前题目
-const loadQuestion = async (questionId: number) => {
+const loadQuestion = async (questionId: string) => {
   if (!questionId) return;
 
   // 从列表中获取题目标签
-  const q = questionList.value.find(item => item.questionId === questionId);
+  const q = questionList.value.find(item => String(item.questionId) === questionId);
   if (q) {
     questionLabel.value = q.questionLabel || "A";
   }
@@ -375,16 +379,34 @@ const goBackToContest = () => {
 // 初始化加载数据
 const loadData = async () => {
   const questionId = route.params.questionId as string;
-  contestId.value = Number(route.params.id);
+  contestId.value = route.params.id as string;
 
   // 先加载题目列表
   await loadQuestionList();
 
+  // 加载已通过题目
+  loadAcceptedQuestions();
+
   // 加载当前题目
   if (questionId) {
-    currentQuestionId.value = Number(questionId);
+    currentQuestionId.value = questionId;
     questionLabel.value = (route.query.label as string) || "A";
-    await loadQuestion(Number(questionId));
+    await loadQuestion(questionId);
+  }
+};
+
+// 加载已通过题目列表
+const loadAcceptedQuestions = async () => {
+  if (!contestId.value) return;
+  try {
+    const res = await getUserAcceptedQuestionsUsingGet(contestId.value as any);
+    if (res.data?.code === 0 || res.code === 0) {
+      const ids = res.data?.data || res.data || [];
+      // 将 ids 转为字符串集合，避免大数字精度问题
+      acceptedQuestionIds.value = new Set(ids.map((id: any) => String(id)));
+    }
+  } catch (e) {
+    console.error("加载已通过题目列表失败", e);
   }
 };
 
@@ -406,6 +428,8 @@ const loadMySubmits = async () => {
       userId: loginUser.id,
       current: mySubmitsCurrentPage.value,
       pageSize: 10,
+      sortField: "submitTime",
+      sortOrder: "descend",
     });
     if (res.data?.code === 0 || res.code === 0) {
       const resData = res.data?.data || res.data;
@@ -462,17 +486,39 @@ const goToMySubmits = () => {
   loadMySubmits();
 };
 
-// 复制代码
-const copyCode = () => {
+// 复制代码 - 兼容HTTP环境
+const copyCode = async () => {
   if (!currentSubmit.value?.code) {
     message.warning("没有可复制的代码");
     return;
   }
-  navigator.clipboard.writeText(currentSubmit.value.code).then(() => {
-    message.success("代码已复制到剪贴板");
-  }).catch(() => {
+  const code = currentSubmit.value.code;
+  try {
+    // 优先使用 navigator.clipboard（需要HTTPS）
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(code);
+      message.success("代码已复制到剪贴板");
+    } else {
+      // 后备方案：使用 document.execCommand
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        message.success("代码已复制到剪贴板");
+      } catch (err) {
+        message.error("复制失败");
+      }
+      document.body.removeChild(textArea);
+    }
+  } catch (err) {
     message.error("复制失败");
-  });
+  }
 };
 
 // 提交代码

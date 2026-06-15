@@ -144,7 +144,7 @@ const selectedKeys = ref<(number | string)[]>([]);
 let allQuestionsDict: Record<string, any> = {};
 
 const questionColumns = [
-  { title: "ID", dataIndex: "id", width: 80 },
+  { title: "题号", dataIndex: "questionNumber", width: 80 },
   { title: "标题", slotName: "title" },
   { title: "难度", slotName: "difficulty", width: 100 },
   { title: "标签", slotName: "tags" },

@@ -87,9 +87,23 @@ const descriptionsData = computed(() => {
     { label: "编程语言", value: submitRecord.value.language || "-" },
     { label: "判题状态", value: formatStatus(submitRecord.value.status) },
     { label: "提交者", value: submitRecord.value.userVO?.userName || "-" },
-    { label: "提交时间", value: submitRecord.value.createTime || "-" },
+    { label: "提交时间", value: formatTime(submitRecord.value.createTime) },
   ];
 });
+
+// 格式化时间
+const formatTime = (time: string) => {
+  if (!time) return "-";
+  const date = new Date(time);
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
 
 const judgeInfoData = computed(() => {
   if (!submitRecord.value?.judgeInfo) return [];
@@ -107,17 +121,40 @@ const judgeInfoData = computed(() => {
   return data;
 });
 
-const copyCode = () => {
+const copyCode = async () => {
   if (!submitRecord.value?.code) {
     message.warning("没有可复制的代码");
     return;
   }
-  navigator.clipboard.writeText(submitRecord.value.code).then(() => {
-    message.success("代码已复制到剪贴板");
-  }).catch((err) => {
+  const code = submitRecord.value.code;
+  try {
+    // 优先使用 navigator.clipboard（需要HTTPS）
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(code);
+      message.success("代码已复制到剪贴板");
+    } else {
+      // 后备方案：使用 document.execCommand
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        message.success("代码已复制到剪贴板");
+      } catch (err) {
+        console.error("复制失败:", err);
+        message.error("复制失败");
+      }
+      document.body.removeChild(textArea);
+    }
+  } catch (err) {
     console.error("复制失败:", err);
     message.error("复制失败");
-  });
+  }
 };
 
 const goBack = () => {

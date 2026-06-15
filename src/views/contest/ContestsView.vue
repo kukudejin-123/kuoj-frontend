@@ -141,7 +141,11 @@ const userRole = computed(() => {
 
 // 加载数据
 const loadData = async () => {
-  const res = await listContestByPageUsingPost(searchParams.value);
+  const res = await listContestByPageUsingPost({
+    ...searchParams.value,
+    sortField: "createTime",
+    sortOrder: "descend",
+  });
   if (res.data?.code === 0 || res.code === 0) {
     const resData = res.data?.data || res.data;
     dataList.value = resData?.records || [];

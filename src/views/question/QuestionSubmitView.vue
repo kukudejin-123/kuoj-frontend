@@ -120,6 +120,17 @@ const loadData = async () => {
     sortOrder: "descend",
   };
 
+  // 验证题号输入，必须是有效数字才传递
+  if (params.questionId) {
+    const questionIdNum = Number(params.questionId);
+    if (!Number.isInteger(questionIdNum) || questionIdNum <= 0) {
+      // 输入不是有效数字，提示用户
+      message.warning("题号请输入有效的数字");
+      return;
+    }
+    params.questionId = questionIdNum;
+  }
+
   const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost(params);
   if (res.code === 0) {
     dataList.value = res.data.records;

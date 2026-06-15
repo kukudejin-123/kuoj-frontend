@@ -65,9 +65,12 @@
         <a-card v-if="contest.hasJoin || contest.status === 2">
           <a-table :columns="questionColumns" :data="questionList" :loading="questionLoading" :pagination="{ pageSize: 10 }">
             <template #questionLabel="{ record }">
-              <a-link @click="toContestQuestion(record)">
-                {{ record.questionLabel }}. {{ record.title }}
-              </a-link>
+              <a-space>
+                <a-link @click="toContestQuestion(record)">
+                  {{ record.questionLabel }}. {{ record.title }}
+                </a-link>
+                <a-tag v-if="acceptedQuestionIds.has(String(record.questionId))" color="green" size="small">已过</a-tag>
+              </a-space>
             </template>
             <template #difficulty="{ record }">
               <a-tag v-if="record.difficulty === 0" color="green">简单</a-tag>
@@ -156,6 +159,7 @@ import {
   quitContestUsingPost,
 } from "@/api/contestController";
 import { getContestRankingUsingGet } from "@/api/rankingController";
+import { getUserAcceptedQuestionsUsingGet } from "@/api/contestSubmitController";
 import message from "@arco-design/web-vue/es/message";
 import moment from "moment";
 import { IconClockCircle, IconUserGroup } from "@arco-design/web-vue/es/icon";
@@ -169,6 +173,7 @@ const rankingList = ref<any[]>([]);
 const questionLoading = ref(false);
 const rankingLoading = ref(false);
 const activeTab = ref("problems");
+const acceptedQuestionIds = ref<Set<string>>(new Set());
 
 const questionColumns = [
   {
@@ -230,6 +235,7 @@ const loadContest = async () => {
     if (contest.value.status === 1 || contest.value.status === 2) {
       loadQuestions();
       loadRanking();
+      loadAcceptedQuestions();
     }
   } else {
     message.error("获取比赛详情失败：" + (res.data?.message || res.message));
@@ -264,6 +270,22 @@ const loadRanking = async () => {
     }
   } finally {
     rankingLoading.value = false;
+  }
+};
+
+// 加载已通过题目列表
+const loadAcceptedQuestions = async () => {
+  const id = route.params.id as string;
+  if (!id) return;
+  try {
+    const res = await getUserAcceptedQuestionsUsingGet(id as any);
+    if (res.data?.code === 0 || res.code === 0) {
+      const ids = res.data?.data || res.data || [];
+      // 将 ids 转为字符串集合，避免大数字精度问题
+      acceptedQuestionIds.value = new Set(ids.map((id: any) => String(id)));
+    }
+  } catch (e) {
+    console.error("加载已通过题目列表失败", e);
   }
 };
 
