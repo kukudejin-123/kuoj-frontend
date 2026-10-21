@@ -1,6 +1,6 @@
 <template>
   <div id="basicLayout">
-    <a-layout style="min-height: 100vh">
+    <a-layout style="min-height: 100vh; display: flex; flex-direction: column;">
       <a-layout-header class="header">
         <GlobalHeader />
       </a-layout-header>
@@ -32,22 +32,22 @@
   position: relative;
   z-index: 1000;
   background: #fff;
+  flex-shrink: 0;
 }
 
 #basicLayout .content {
   background: linear-gradient(to right, #fefefe, #fff);
   margin-bottom: 16px;
   padding: 20px;
+  flex: 1;
+  min-height: 0;
 }
 
 #basicLayout .footer {
   background: #efefef;
   padding: 16px;
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
   text-align: center;
+  flex-shrink: 0;
 }
 
 #basicLayout .divider {
