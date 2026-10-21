@@ -233,7 +233,7 @@ export const routes: Array<RouteRecordRaw> = [
     name: "创建比赛",
     component: CreateContestView,
     meta: {
-      access: ACCESS_ENUM.ADMIN,
+      access: ACCESS_ENUM.USER,
       hideInMenu: true,
     },
   },

@@ -115,3 +115,18 @@ export async function quitContestUsingPost(
     ...(options || {}),
   });
 }
+
+/** addCaptainContest POST /api/contest/captain/add */
+export async function addCaptainContestUsingPost(
+  body: API.ContestAddRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseLong_>('/contest/captain/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}

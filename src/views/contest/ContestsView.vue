@@ -15,7 +15,7 @@
         <a-space>
           <a-button type="primary" @click="doSubmit">搜索</a-button>
           <a-button @click="doClear">清空</a-button>
-          <a-button type="primary" v-if="userRole === 'admin'" @click="toCreateContest">
+          <a-button type="primary" v-if="canCreateContest" @click="toCreateContest">
             创建比赛
           </a-button>
         </a-space>
@@ -36,6 +36,8 @@
     >
       <template #contestName="{ record }">
         <a-link @click="toContestDetail(record)">{{ record.contestName }}</a-link>
+        <a-tag v-if="record.visibility === 1" color="orange" size="small" style="margin-left: 8px">私有</a-tag>
+        <a-tag v-else color="green" size="small" style="margin-left: 8px">公开</a-tag>
       </template>
       <template #contestType="{ record }">
         <a-tag v-if="record.contestType === 0" color="arcoblue">ACM</a-tag>
@@ -137,6 +139,11 @@ const columns = [
 // 获取当前用户角色
 const userRole = computed(() => {
   return store.state.user.loginUser?.userRole || ACCESS_ENUM.NOT_LOGIN;
+});
+
+// 是否可以创建比赛（管理员或已登录用户-队长）
+const canCreateContest = computed(() => {
+  return store.state.user.loginUser?.userRole !== ACCESS_ENUM.NOT_LOGIN;
 });
 
 // 加载数据

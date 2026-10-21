@@ -17,6 +17,24 @@
           </a-radio-group>
         </a-form-item>
 
+        <!-- 可见性：仅管理员可见此选项，队长创建时自动为私有 -->
+        <a-form-item v-if="isAdmin" label="可见性" field="visibility">
+          <a-radio-group v-model="form.visibility">
+            <a-radio :value="0">公开（所有人都能参加）</a-radio>
+            <a-radio :value="1">私有（仅指定团队可参加）</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item v-if="!isAdmin" label="可见性">
+          <a-alert type="info" message="队长创建的比赛为私有比赛，仅本团队成员可参加" />
+        </a-form-item>
+
+        <!-- 私有比赛时选择允许的团队 -->
+        <a-form-item v-if="isAdmin && form.visibility === 1" label="允许参加的团队" field="allowedTeamIds">
+          <a-select v-model="form.allowedTeamIds" placeholder="请选择允许参加的团队" multiple allow-clear allow-search>
+            <a-option v-for="team in teamList" :key="team.id" :value="String(team.id)">{{ team.teamName }}</a-option>
+          </a-select>
+        </a-form-item>
+
         <a-form-item label="开始时间" field="startTime" :rules="[{ required: true, message: '请选择开始时间' }]">
           <a-date-picker v-model="form.startTime" show-time format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
         </a-form-item>
@@ -110,24 +128,47 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useStore } from "vuex";
 import { Message } from "@arco-design/web-vue";
-import { addContestUsingPost } from "@/api/contestController";
+import { addContestUsingPost, addCaptainContestUsingPost } from "@/api/contestController";
 import { listQuestionVoByPageUsingPost } from "@/api/questionController";
+import { listTeamByPageUsingPost } from "@/api/teamController";
+import ACCESS_ENUM from "@/access/accessEnum";
 
 const router = useRouter();
+const store = useStore();
 const submitting = ref(false);
 const questionModalVisible = ref(false);
+
+const isAdmin = computed(() => store.state.user.loginUser?.userRole === ACCESS_ENUM.ADMIN);
 
 const form = reactive({
   contestName: "",
   contestDesc: "",
   contestType: 0,
+  visibility: 0,
+  allowedTeamIds: [] as string[],
   startTime: "",
   endTime: "",
   questionIds: [] as number[],
 });
+
+// 团队列表（用于私有比赛选择）
+const teamList = ref<any[]>([]);
+
+const loadTeams = async () => {
+  try {
+    const res = await listTeamByPageUsingPost({ current: 1, pageSize: 100 });
+    const resData = res.data || res;
+    if (resData.code === 0) {
+      teamList.value = resData.data?.records || resData.records || [];
+    }
+  } catch (e) {
+    console.error("加载团队列表失败", e);
+  }
+};
 
 // 题目搜索
 const questionSearch = reactive({
@@ -239,14 +280,24 @@ const handleSubmit = async () => {
   submitting.value = true;
   try {
     const questionIds = selectedQuestions.value.map((q) => q.id);
-    const res = await addContestUsingPost({
+    // 管理员使用 addContest，队长使用 addCaptainContest
+    const apiFunc = isAdmin.value ? addContestUsingPost : addCaptainContestUsingPost;
+    const submitData: any = {
       contestName: form.contestName,
       contestDesc: form.contestDesc,
       contestType: form.contestType,
       startTime: form.startTime,
       endTime: form.endTime,
       questionIds: questionIds,
-    });
+    };
+    // 管理员创建时传递可见性和团队
+    if (isAdmin.value) {
+      submitData.visibility = form.visibility;
+      if (form.visibility === 1 && form.allowedTeamIds.length > 0) {
+        submitData.allowedTeamIds = JSON.stringify(form.allowedTeamIds.map(Number));
+      }
+    }
+    const res = await apiFunc(submitData);
 
     if (res.data?.code === 0 || res.code === 0) {
       Message.success("创建比赛成功");
@@ -263,6 +314,10 @@ const handleSubmit = async () => {
 const handleCancel = () => {
   router.back();
 };
+
+onMounted(() => {
+  loadTeams();
+});
 </script>
 
 <style scoped>
