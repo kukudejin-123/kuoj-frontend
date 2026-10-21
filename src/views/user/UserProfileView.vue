@@ -190,10 +190,13 @@ const loadUserInfo = async () => {
   try {
     if (isViewingOther.value) {
       // 查看其他用户的资料（使用公开接口）
-      // 直接传递字符串，避免大数字精度丢失
-      const res = await UserControllerService.getUserVoByIdUsingGet({ id: props.userId as any });
-      if (res.code === 0 && res.data) {
-        userInfo.value = res.data;
+      // 直接用 fetch 调用，避免 number 类型精度丢失
+      const res = await fetch(`/api/user/get/vo?id=${props.userId}`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.code === 0 && data.data) {
+        userInfo.value = data.data;
       } else {
         message.error("获取用户信息失败");
       }
@@ -216,19 +219,25 @@ const loadStatistics = async () => {
   try {
     const targetUserId = isViewingOther.value ? props.userId : userInfo.value.id;
 
-    // 获取最近提交记录
-    const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost({
-      current: 1,
-      pageSize: 10,
-      userId: targetUserId as any,
-      sortField: "createTime",
-      sortOrder: "descend",
+    // 获取最近提交记录（直接用 fetch 避免 number 精度丢失）
+    const res = await fetch('/api/question/question_submit/list/page', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        current: 1,
+        pageSize: 10,
+        userId: targetUserId,
+        sortField: "createTime",
+        sortOrder: "descend",
+      }),
+      credentials: 'include',
     });
+    const data = await res.json();
 
-    if (res.code === 0 && res.data) {
-      submitList.value = res.data.records || [];
+    if (data.code === 0 && data.data) {
+      submitList.value = data.data.records || [];
       // 计算统计数据
-      statistics.submitCount = res.data.total || 0;
+      statistics.submitCount = data.data.total || 0;
       // 统计通过次数
       let acceptCount = 0;
       submitList.value.forEach((item: any) => {
