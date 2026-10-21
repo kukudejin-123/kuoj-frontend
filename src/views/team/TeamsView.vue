@@ -8,7 +8,7 @@
         <a-space>
           <a-button type="primary" @click="doSubmit">搜索</a-button>
           <a-button @click="doClear">清空</a-button>
-          <a-button type="primary" v-if="userRole === 'admin'" @click="toCreateTeam">
+          <a-button type="primary" v-if="isLogin" @click="toCreateTeam">
             创建团队
           </a-button>
         </a-space>
@@ -83,6 +83,11 @@ const total = ref(0);
 // 获取当前用户角色
 const userRole = computed(() => {
   return store.state.user.loginUser?.userRole || ACCESS_ENUM.NOT_LOGIN;
+});
+
+// 是否已登录
+const isLogin = computed(() => {
+  return store.state.user.loginUser?.userRole !== ACCESS_ENUM.NOT_LOGIN;
 });
 
 // 搜索参数

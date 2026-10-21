@@ -21,13 +21,6 @@
             :auto-size="{ minRows: 3, maxRows: 6 }"
           />
         </a-form-item>
-        <a-form-item field="captainUserId" label="队长用户ID">
-          <a-input-number
-            v-model="form.captainUserId"
-            placeholder="可选，不填则默认当前用户为队长"
-            :allow-clear="true"
-          />
-        </a-form-item>
         <a-form-item field="maxMemberCount" label="最大成员数量">
           <a-input-number
             v-model="form.maxMemberCount"
@@ -63,7 +56,6 @@ const form = ref({
   teamName: "",
   teamDesc: "",
   maxMemberCount: 50,
-  captainUserId: undefined as number | undefined,
 });
 
 // 提交表单

@@ -159,7 +159,7 @@ export const routes: Array<RouteRecordRaw> = [
     name: "创建团队",
     component: CreateTeamView,
     meta: {
-      access: ACCESS_ENUM.ADMIN,
+      access: ACCESS_ENUM.USER,
       hideInMenu: true,
     },
   },
