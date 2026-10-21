@@ -64,7 +64,16 @@
               <a-option value="IGNORE_CASE">忽略大小写</a-option>
               <a-option value="FLOAT">浮点数精度比较</a-option>
               <a-option value="MULTI_ANSWER">多解判断</a-option>
+              <a-option value="TESTLIB">自定义SPJ判题</a-option>
             </a-select>
+            <div style="margin-top: 8px; color: #666; font-size: 12px;">
+              <div v-if="form.judgeConfig.judgeMode === 'DEFAULT'"><strong>默认：</strong>输出必须与期望完全一致（去除首尾空格后）</div>
+              <div v-if="form.judgeConfig.judgeMode === 'IGNORE_SPACE'"><strong>忽略空格：</strong>多个空格合并为一个，适用于输出格式要求不严格的题目</div>
+              <div v-if="form.judgeConfig.judgeMode === 'IGNORE_CASE'"><strong>忽略大小写：</strong>适用于判断题（YES/Yes/yes 都算正确）</div>
+              <div v-if="form.judgeConfig.judgeMode === 'FLOAT'"><strong>浮点数：</strong>适用于计算结果为小数的题目，允许一定误差</div>
+              <div v-if="form.judgeConfig.judgeMode === 'MULTI_ANSWER'"><strong>多解判断：</strong>答案有多种可能，在下方配置可接受答案列表</div>
+              <div v-if="form.judgeConfig.judgeMode === 'TESTLIB'"><strong>自定义SPJ：</strong>使用自定义程序判题，适用于答案不唯一的题目</div>
+            </div>
           </a-form-item>
           <a-form-item
             v-if="form.judgeConfig.judgeMode === 'FLOAT'"
@@ -90,6 +99,27 @@
               placeholder="输入答案后按回车添加"
               allow-clear
             />
+          </a-form-item>
+          <!-- SPJ 配置 -->
+          <a-form-item
+            v-if="form.judgeConfig.judgeMode === 'TESTLIB'"
+            field="judgeConfig.spjCode"
+            label="SPJ程序代码"
+          >
+            <a-space direction="vertical" style="width: 100%;">
+              <a-select v-model="form.judgeConfig.spjLanguage" style="width: 120px;">
+                <a-option value="java">Java</a-option>
+              </a-select>
+              <a-textarea
+                v-model="form.judgeConfig.spjCode"
+                placeholder="请输入 SPJ 程序代码（Java）"
+                :auto-size="{ minRows: 10, maxRows: 30 }"
+                style="font-family: monospace;"
+              />
+              <div style="color: #666; font-size: 12px;">
+                SPJ 程序通过退出码返回判题结果：0=通过，1=答案错误，2=格式错误，3=判题程序错误
+              </div>
+            </a-space>
           </a-form-item>
         </a-space>
       </a-form-item>
@@ -138,6 +168,8 @@ const form = ref<any>({
     judgeMode: "DEFAULT",
     floatPrecision: 0.000001,
     acceptableOutputs: [],
+    spjCode: "",
+    spjLanguage: "java",
   },
   judgeCase: [{ input: "", output: "" }],
 });
