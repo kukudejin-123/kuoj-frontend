@@ -21,6 +21,10 @@ import ContestDetailView from "@/views/contest/ContestDetailView.vue";
 import ContestQuestionView from "@/views/contest/ContestQuestionView.vue";
 import CreateContestView from "@/views/contest/CreateContestView.vue";
 import RankingView from "@/views/ranking/RankingView.vue";
+import UserAddQuestionView from "@/views/question/UserAddQuestionView.vue";
+import MyQuestionsView from "@/views/question/MyQuestionsView.vue";
+import ReviewQuestionView from "@/views/admin/ReviewQuestionView.vue";
+import StatisticsView from "@/views/admin/StatisticsView.vue";
 
 export const routes: Array<RouteRecordRaw> = [
   {
@@ -126,6 +130,39 @@ export const routes: Array<RouteRecordRaw> = [
     component: ManageQuestionView,
     meta: {
       access: ACCESS_ENUM.ADMIN,
+    },
+  },
+  {
+    path: "/admin/review",
+    name: "题目审核",
+    component: ReviewQuestionView,
+    meta: {
+      access: ACCESS_ENUM.ADMIN,
+    },
+  },
+  {
+    path: "/admin/statistics",
+    name: "数据统计",
+    component: StatisticsView,
+    meta: {
+      access: ACCESS_ENUM.ADMIN,
+    },
+  },
+  {
+    path: "/question/user/add",
+    name: "提交出题",
+    component: UserAddQuestionView,
+    meta: {
+      access: ACCESS_ENUM.USER,
+      hideInMenu: true,
+    },
+  },
+  {
+    path: "/question/my",
+    name: "我的出题",
+    component: MyQuestionsView,
+    meta: {
+      access: ACCESS_ENUM.USER,
     },
   },
   {

@@ -124,6 +124,49 @@ declare namespace API {
     message?: string;
   };
 
+  type BaseResponseMapStringObject_ = {
+    code?: number;
+    data?: { [key: string]: any };
+    message?: string;
+  };
+
+  type BaseResponsePageQuestionAdminVo_ = {
+    code?: number;
+    data?: PageQuestionAdminVo_;
+    message?: string;
+  };
+
+  type PageQuestionAdminVo_ = {
+    records?: QuestionAdminVo[];
+    total?: number;
+    size?: number;
+    current?: number;
+  };
+
+  type QuestionAdminVo = {
+    id?: number;
+    title?: string;
+    content?: string;
+    tags?: string;
+    answer?: string;
+    sourceCode?: string;
+    submitNum?: number;
+    acceptedNum?: number;
+    judgeCase?: string;
+    judgeConfig?: string;
+    thumbNum?: number;
+    favourNum?: number;
+    userId?: number;
+    createTime?: string;
+    updateTime?: string;
+    isPublic?: number;
+    reviewStatus?: number;
+    reviewRemark?: string;
+    questionNumber?: number;
+    difficulty?: number;
+    user?: UserVO;
+  };
+
   type BaseResponseLoginUserVO_ = {
     code?: number;
     data?: LoginUserVO;
@@ -561,6 +604,35 @@ declare namespace API {
   type QuestionAddRequest = {
     appId?: number;
     questionContent?: QuestionContentDTO[];
+    title?: string;
+    content?: string;
+    tags?: string[];
+    answer?: string;
+    sourceCode?: string;
+    difficulty?: number;
+    judgeCase?: JudgeCase[];
+    judgeConfig?: JudgeConfig;
+    isPublic?: number;
+    reviewStatus?: number;
+  };
+
+  type JudgeCase = {
+    input?: string;
+    output?: string;
+  };
+
+  type JudgeConfig = {
+    timeLimit?: number;
+    memoryLimit?: number;
+    stackLimit?: number;
+    inputMode?: string;
+    judgeMode?: string;
+    floatPrecision?: number;
+    ignoreTrailingSpace?: boolean;
+    ignoreCase?: boolean;
+    acceptableOutputs?: string[];
+    spjCode?: string;
+    spjLanguage?: string;
   };
 
   type QuestionContentDTO = {

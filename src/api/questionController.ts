@@ -156,3 +156,63 @@ export async function getGlobalStatisticsUsingGet(
     ...(options || {}),
   });
 }
+
+/** addUserQuestion POST /api/question/user/add */
+export async function addUserQuestionUsingPost(
+  body: API.QuestionAddRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseLong_>('/question/user/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** listMyQuestions POST /api/question/my/questions */
+export async function listMyQuestionsUsingPost(
+  body: API.QuestionQueryRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponsePageQuestionVO_>('/question/my/questions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** listReviewQuestions POST /api/question/review/list */
+export async function listReviewQuestionsUsingPost(
+  body: API.QuestionQueryRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponsePageQuestionAdminVo_>('/question/review/list', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** reviewQuestion POST /api/question/review */
+export async function reviewQuestionUsingPost(
+  body: { id: number; reviewStatus: number; reviewRemark?: string },
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseBoolean_>('/question/review', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
