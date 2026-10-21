@@ -8,4 +8,14 @@ import "@/plugins/axios";
 import "@/access";
 import "bytemd/dist/index.css";
 
+// 修复 Arco Design Vue 的 ResizeObserver 已知 bug
+// 该错误会导致 Vue 应用崩溃，导航栏消失
+const resizeObserverErrHandler = (e: ErrorEvent) => {
+  if (e.message === "ResizeObserver loop completed with undelivered notifications.") {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }
+};
+window.addEventListener("error", resizeObserverErrHandler, true);
+
 createApp(App).use(ArcoVue).use(store).use(router).mount("#app");

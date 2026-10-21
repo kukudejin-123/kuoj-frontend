@@ -61,7 +61,7 @@
         </a-space>
       </template>
       <template #acceptedRate="{ record }">
-        <a-progress :percent="calculateRate(record)" size="medium"/>
+        <span>{{ calculateRate(record) }}%</span>
       </template>
       <template #createTime="{ record }">
         {{ moment(record.createTime).format("YYYY-MM-DD") }}
