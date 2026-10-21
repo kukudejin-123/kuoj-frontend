@@ -164,3 +164,17 @@ export async function listTeamMembersUsingPost(
     ...(options || {}),
   });
 }
+/** 管理员指定/修改团队队长 POST /team/set-captain */
+export async function setCaptainUsingPost(
+  body: API.TeamInviteRequest,
+  options?: { [key: string]: any },
+) {
+  return request<API.BaseResponseBoolean_>('/team/set-captain', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}

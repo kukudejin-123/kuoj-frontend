@@ -14,7 +14,8 @@
             </a-tag>
           </div>
           <a-descriptions :column="1" bordered>
-            <a-descriptions-item label="账号">
+            <!-- 账号信息仅自己可见（UserVO 脱敏后不含 userAccount） -->
+            <a-descriptions-item v-if="!isViewingOther" label="账号">
               {{ userInfo.userAccount }}
             </a-descriptions-item>
             <a-descriptions-item label="简介">
@@ -39,7 +40,7 @@
         <a-row :gutter="[16, 16]" style="margin-bottom: 24px;">
           <a-col :span="8">
             <a-card>
-              <a-statistic title="提交次数" :value="statistics.submitCount" show-group-separator>
+              <a-statistic title="提交次数" :value="String(statistics.submitCount)">
                 <template #suffix>
                   <span style="font-size: 14px; color: #999;">次</span>
                 </template>
@@ -48,7 +49,7 @@
           </a-col>
           <a-col :span="8">
             <a-card>
-              <a-statistic title="通过次数" :value="statistics.acceptCount" show-group-separator>
+              <a-statistic title="通过次数" :value="String(statistics.acceptCount)">
                 <template #suffix>
                   <span style="font-size: 14px; color: #999;">次</span>
                 </template>
@@ -57,7 +58,7 @@
           </a-col>
           <a-col :span="8">
             <a-card>
-              <a-statistic title="通过率" :value="statistics.acceptRate" :precision="1">
+              <a-statistic title="通过率" :value="statistics.acceptRate.toFixed(1)">
                 <template #suffix>%</template>
               </a-statistic>
             </a-card>
@@ -219,7 +220,20 @@ const loadStatistics = async () => {
   try {
     const targetUserId = isViewingOther.value ? props.userId : userInfo.value.id;
 
-    // 获取最近提交记录（直接用 fetch 避免 number 精度丢失）
+    // 1. 获取精确的统计数据（提交总数、通过次数）——调用专门的统计接口
+    const statsRes = await fetch(`/api/question/question_submit/statistics?userId=${targetUserId}`, {
+      credentials: 'include',
+    });
+    const statsData = await statsRes.json();
+    if (statsData.code === 0 && statsData.data) {
+      statistics.submitCount = Number(statsData.data.submitCount) || 0;
+      statistics.acceptCount = Number(statsData.data.acceptCount) || 0;
+      if (statistics.submitCount > 0) {
+        statistics.acceptRate = (statistics.acceptCount / statistics.submitCount) * 100;
+      }
+    }
+
+    // 2. 获取最近提交记录（直接用 fetch 避免 number 精度丢失）
     const res = await fetch('/api/question/question_submit/list/page', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -236,19 +250,6 @@ const loadStatistics = async () => {
 
     if (data.code === 0 && data.data) {
       submitList.value = data.data.records || [];
-      // 计算统计数据
-      statistics.submitCount = data.data.total || 0;
-      // 统计通过次数
-      let acceptCount = 0;
-      submitList.value.forEach((item: any) => {
-        if (item.judgeInfo?.message === "成功" || item.status === "2") {
-          acceptCount++;
-        }
-      });
-      statistics.acceptCount = acceptCount;
-      if (statistics.submitCount > 0) {
-        statistics.acceptRate = (statistics.acceptCount / statistics.submitCount) * 100;
-      }
     }
   } catch (error) {
     console.error("加载统计数据失败", error);

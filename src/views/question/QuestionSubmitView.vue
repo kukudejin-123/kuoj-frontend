@@ -2,16 +2,16 @@
   <div id="questionSubmitView">
     <a-form :model="searchParams" layout="inline">
       <a-form-item label="题号">
-        <a-input v-model="searchParams.questionId" placeholder="请输入题号" allow-clear style="width: 120px" />
+        <a-input v-model="searchParams.questionNumber" placeholder="请输入题号" allow-clear style="width: 120px" />
       </a-form-item>
       <a-form-item label="判题结果">
         <a-select v-model="searchParams.judgeResult" placeholder="全部" allow-clear style="width: 140px">
-          <a-option value="成功">通过</a-option>
-          <a-option value="答案错误">答案错误</a-option>
-          <a-option value="超时">时间超限</a-option>
-          <a-option value="内存溢出">内存超限</a-option>
-          <a-option value="编译错误">编译错误</a-option>
-          <a-option value="运行错误">运行错误</a-option>
+          <a-option value="Accepted">通过</a-option>
+          <a-option value="Wrong Answer">答案错误</a-option>
+          <a-option value="Time Limit Exceeded">时间超限</a-option>
+          <a-option value="Memory Limit Exceeded">内存超限</a-option>
+          <a-option value="Compile Error">编译错误</a-option>
+          <a-option value="Runtime Error">运行错误</a-option>
         </a-select>
       </a-form-item>
       <a-form-item label="编程语言">
@@ -104,7 +104,7 @@ const tableRef = ref();
 const dataList = ref([]);
 const total = ref(0);
 const searchParams = ref<any>({
-  questionId: undefined,
+  questionNumber: undefined,
   language: undefined,
   judgeResult: undefined,
   userName: undefined,
@@ -115,28 +115,36 @@ const searchParams = ref<any>({
 const loadData = async () => {
   // 构建查询参数
   const params: any = {
-    ...searchParams.value,
+    language: searchParams.value.language,
+    judgeResult: searchParams.value.judgeResult,
+    userName: searchParams.value.userName,
+    pageSize: searchParams.value.pageSize,
+    current: searchParams.value.current,
     sortField: "createTime",
     sortOrder: "descend",
   };
 
   // 验证题号输入，必须是有效数字才传递
-  if (params.questionId) {
-    const questionIdNum = Number(params.questionId);
-    if (!Number.isInteger(questionIdNum) || questionIdNum <= 0) {
+  if (searchParams.value.questionNumber) {
+    const questionNumberNum = Number(searchParams.value.questionNumber);
+    if (!Number.isInteger(questionNumberNum) || questionNumberNum <= 0) {
       // 输入不是有效数字，提示用户
       message.warning("题号请输入有效的数字");
       return;
     }
-    params.questionId = questionIdNum;
+    params.questionNumber = questionNumberNum;
   }
 
-  const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost(params);
-  if (res.code === 0) {
-    dataList.value = res.data.records;
-    total.value = res.data.total;
-  } else {
-    message.error("加载失败，" + res.message);
+  try {
+    const res = await QuestionControllerService.listQuestionSubmitByPageUsingPost(params);
+    if (res.code === 0) {
+      dataList.value = res.data.records;
+      total.value = res.data.total;
+    } else {
+      message.error("加载失败，" + res.message);
+    }
+  } catch (e) {
+    message.error("加载失败");
   }
 };
 
@@ -227,7 +235,7 @@ const doSubmit = () => {
  */
 const doClear = () => {
   searchParams.value = {
-    questionId: undefined,
+    questionNumber: undefined,
     language: undefined,
     judgeResult: undefined,
     userName: undefined,

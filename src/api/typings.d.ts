@@ -675,17 +675,36 @@ declare namespace API {
     questionContent?: QuestionContentDTO[];
     updateTime?: string;
     user?: UserVO;
+    userVO?: UserVO;
     userId?: number;
     questionNumber?: number;
     title?: string;
     content?: string;
+    sourceCode?: string;
     tags?: string[];
     submitNum?: number;
     acceptedNum?: number;
     difficulty?: number;
+    judgeConfig?: JudgeConfig;
+    thumbNum?: number;
+    favourNum?: number;
     isPublic?: number;
     reviewStatus?: number;
     reviewRemark?: string;
+  };
+
+  type QuestionSubmitVO = {
+    id?: number;
+    language?: string;
+    code?: string;
+    judgeInfo?: any;
+    status?: string;
+    questionId?: number;
+    userId?: number;
+    createTime?: string;
+    updateTime?: string;
+    userVO?: UserVO;
+    questionVO?: QuestionVO;
   };
 
   type ReviewRequest = {

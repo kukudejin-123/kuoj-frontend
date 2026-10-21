@@ -84,6 +84,7 @@ import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
 import { listContestByPageUsingPost, deleteContestUsingPost } from "@/api/contestController";
+import { listMyTeamUsingPost } from "@/api/teamController";
 import message from "@arco-design/web-vue/es/message";
 import Modal from "@arco-design/web-vue/es/modal";
 import moment from "moment";
@@ -142,10 +143,33 @@ const userRole = computed(() => {
   return store.state.user.loginUser?.userRole || ACCESS_ENUM.NOT_LOGIN;
 });
 
-// 是否可以创建比赛（管理员或已登录用户-队长）
-const canCreateContest = computed(() => {
-  return store.state.user.loginUser?.userRole !== ACCESS_ENUM.NOT_LOGIN;
-});
+// 是否可以创建比赛（管理员，或者用户是某个团队的队长）
+const canCreateContest = ref(false);
+
+// 检查当前用户是否是某个团队的队长
+const checkCanCreateContest = async () => {
+  // 管理员可以直接创建
+  if (store.state.user.loginUser?.userRole === ACCESS_ENUM.ADMIN) {
+    canCreateContest.value = true;
+    return;
+  }
+  // 普通用户需要检查是否是团队队长
+  if (store.state.user.loginUser?.userRole === ACCESS_ENUM.NOT_LOGIN) {
+    canCreateContest.value = false;
+    return;
+  }
+  try {
+    const res = await listMyTeamUsingPost({ current: 1, pageSize: 20 });
+    const resData = res.data || res;
+    if (resData.code === 0) {
+      const teams = resData.data?.records || resData.records || [];
+      // userRole === 2 表示队长
+      canCreateContest.value = teams.some((t: any) => t.userRole === 2);
+    }
+  } catch (e) {
+    canCreateContest.value = false;
+  }
+};
 
 // 加载数据
 const loadData = async () => {
@@ -228,6 +252,7 @@ const deleteContest = async (record: any) => {
 
 onMounted(() => {
   loadData();
+  checkCanCreateContest();
 });
 </script>
 

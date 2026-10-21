@@ -79,12 +79,21 @@
               移除
             </a-button>
             <a-button
-              v-if="team?.userRole === 2 && record.userRole !== 2 && team?.userId !== record.userId"
+              v-if="team?.userRole === 2 && record.userRole !== 2 && String(team?.userId) !== String(record.userId)"
               type="text"
               size="small"
               @click="handleTransfer(record)"
             >
               转让队长
+            </a-button>
+            <!-- 管理员可以指定任意成员为队长 -->
+            <a-button
+              v-if="isAdmin && record.userRole !== 2"
+              type="text"
+              size="small"
+              @click="handleSetCaptain(record)"
+            >
+              指定队长
             </a-button>
           </a-space>
         </template>
@@ -103,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "vuex";
 import {
@@ -114,13 +123,20 @@ import {
   inviteUserUsingPost,
   transferCaptainUsingPost,
   deleteTeamUsingPost,
+  setCaptainUsingPost,
 } from "@/api/teamController";
 import message from "@arco-design/web-vue/es/message";
 import moment from "moment";
+import ACCESS_ENUM from "@/access/accessEnum";
 
 const router = useRouter();
 const route = useRoute();
 const store = useStore();
+
+// 当前用户是否是管理员
+const isAdmin = computed(() => {
+  return store.state.user.loginUser?.userRole === ACCESS_ENUM.ADMIN;
+});
 
 const team = ref<any>(null);
 const memberList = ref([]);
@@ -288,6 +304,26 @@ const handleTransfer = async (member: any) => {
     }
   } catch (e) {
     message.error("转让失败");
+  }
+};
+
+// 管理员指定队长
+const handleSetCaptain = async (member: any) => {
+  if (!team.value) return;
+  try {
+    const res = await setCaptainUsingPost({
+      teamId: team.value.id,
+      userId: String(member.userId),
+    });
+    if (res.data?.code === 0 || res.code === 0) {
+      message.success("指定队长成功");
+      loadTeam();
+      loadMembers();
+    } else {
+      message.error("操作失败，" + (res.data?.message || res.message || ""));
+    }
+  } catch (e) {
+    message.error("操作失败");
   }
 };
 
