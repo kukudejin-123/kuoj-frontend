@@ -19,7 +19,8 @@
         <a-tag v-else-if="record.difficulty === 2" color="red">困难</a-tag>
       </template>
       <template #user="{ record }">
-        <span v-if="record.user">{{ record.user.userName || record.user.userAccount }}</span>
+        <span v-if="record.user">{{ record.user.userName || "未知用户" }}</span>
+        <span v-else>未知用户</span>
       </template>
       <template #createTime="{ record }">
         {{ moment(record.createTime).format("YYYY-MM-DD HH:mm") }}

@@ -106,24 +106,21 @@ const searchParams = ref<any>({
   current: 1,
 });
 
-// 计算通过率（返回 0-1 之间的值，保留两位小数）
+// 计算通过率（返回 0-100 之间的值，a-progress 需要百分比）
 const calculateRate = (record: any) => {
   if (!record.submitNum || record.submitNum === 0) return 0;
   const rate = record.acceptedNum / record.submitNum;
-  return Math.round(rate * 100) / 100;
+  return Math.round(rate * 100);
 };
 
 // 加载所有标签
 const loadAllTags = async () => {
   try {
-    console.log("开始加载标签...");
     const res = await getAllTagsUsingGet();
-    console.log("标签接口返回:", res);
     // 兼容两种返回格式
     if (res.data?.code === 0 || res.code === 0) {
-      const tagsData = res.data?.data || res.data || [];
+      const tagsData = res.data?.data ?? res.data ?? [];
       allTags.value = Array.isArray(tagsData) ? tagsData : [];
-      console.log("加载到的标签列表:", allTags.value);
     } else {
       console.error("加载标签失败:", res.data?.message || res.message);
     }
@@ -157,14 +154,18 @@ const loadData = async () => {
     params.sortOrder = searchParams.value.sortOrder;
   }
 
-  const res = await listQuestionVoByPageUsingPost(params);
-  // 兼容两种返回格式
-  const resData = res.data || res;
-  if (resData.code === 0) {
-    dataList.value = resData.data?.records || resData.records || [];
-    total.value = resData.data?.total || resData.total || 0;
-  } else {
-    message.error("加载失败，" + (resData.message || ""));
+  try {
+    const res = await listQuestionVoByPageUsingPost(params);
+    // 兼容两种返回格式
+    const resData = res.data || res;
+    if (resData.code === 0) {
+      dataList.value = resData.data?.records || resData.records || [];
+      total.value = resData.data?.total || resData.total || 0;
+    } else {
+      message.error("加载失败，" + (resData.message || ""));
+    }
+  } catch (e) {
+    message.error("加载失败");
   }
 };
 

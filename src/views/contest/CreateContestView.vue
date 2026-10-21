@@ -160,11 +160,24 @@ const teamList = ref<any[]>([]);
 
 const loadTeams = async () => {
   try {
-    const res = await listTeamByPageUsingPost({ current: 1, pageSize: 100 });
-    const resData = res.data || res;
-    if (resData.code === 0) {
-      teamList.value = resData.data?.records || resData.records || [];
+    // 后端限制 pageSize 最大为 20，需要分页加载
+    const allTeams: any[] = [];
+    let current = 1;
+    let hasMore = true;
+    while (hasMore) {
+      const res = await listTeamByPageUsingPost({ current, pageSize: 20 });
+      const resData = res.data || res;
+      if (resData.code === 0) {
+        const records = resData.data?.records || resData.records || [];
+        allTeams.push(...records);
+        const total = resData.data?.total || resData.total || 0;
+        hasMore = allTeams.length < total && records.length > 0;
+        current++;
+      } else {
+        hasMore = false;
+      }
     }
+    teamList.value = allTeams;
   } catch (e) {
     console.error("加载团队列表失败", e);
   }
@@ -274,6 +287,12 @@ const handleSubmit = async () => {
 
   if (form.startTime && form.endTime && new Date(form.startTime) >= new Date(form.endTime)) {
     Message.error("开始时间必须早于结束时间");
+    return;
+  }
+
+  // 管理员创建私有比赛时必须选择至少一个团队
+  if (isAdmin.value && form.visibility === 1 && form.allowedTeamIds.length === 0) {
+    Message.error("私有比赛必须选择至少一个允许参加的团队");
     return;
   }
 

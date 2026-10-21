@@ -41,7 +41,8 @@
       </template>
       <template #contestType="{ record }">
         <a-tag v-if="record.contestType === 0" color="arcoblue">ACM</a-tag>
-        <a-tag v-else color="green">IOI</a-tag>
+        <a-tag v-else-if="record.contestType === 1" color="green">IOI</a-tag>
+        <a-tag v-else color="gray">未知</a-tag>
       </template>
       <template #status="{ record }">
         <a-tag v-if="record.status === 0" color="gray">未开始</a-tag>
@@ -148,17 +149,21 @@ const canCreateContest = computed(() => {
 
 // 加载数据
 const loadData = async () => {
-  const res = await listContestByPageUsingPost({
-    ...searchParams.value,
-    sortField: "createTime",
-    sortOrder: "descend",
-  });
-  if (res.data?.code === 0 || res.code === 0) {
-    const resData = res.data?.data || res.data;
-    dataList.value = resData?.records || [];
-    total.value = resData?.total || 0;
-  } else {
-    message.error("获取比赛列表失败：" + (res.data?.message || res.message));
+  try {
+    const res = await listContestByPageUsingPost({
+      ...searchParams.value,
+      sortField: "createTime",
+      sortOrder: "descend",
+    });
+    if (res.data?.code === 0 || res.code === 0) {
+      const resData = res.data?.data ?? res.data;
+      dataList.value = resData?.records || [];
+      total.value = resData?.total || 0;
+    } else {
+      message.error("获取比赛列表失败：" + (res.data?.message || res.message));
+    }
+  } catch (e) {
+    message.error("获取比赛列表失败");
   }
 };
 

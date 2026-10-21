@@ -201,7 +201,7 @@ const onMemberPageChange = (page: number) => {
 // 跳转用户主页
 const toUserProfile = (userId?: number) => {
   if (userId) {
-    router.push(`/profile?userId=${userId}`);
+    router.push(`/user/profile/${userId}`);
   }
 };
 

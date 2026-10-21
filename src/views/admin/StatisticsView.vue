@@ -153,7 +153,17 @@ const loadData = async () => {
       getLanguageDistributionUsingGet(),
     ]);
 
-    const getData = (res: any) => res.data?.data || res.data || res;
+    const getData = (res: any) => {
+      // 优先取 res.data.data，其次取 res.data，最后取 res 本身
+      // 使用 ?? 而非 || 避免空对象/空数组被跳过
+      if (res?.data?.data !== undefined && res?.data?.data !== null) {
+        return res.data.data;
+      }
+      if (res?.data !== undefined && res?.data !== null) {
+        return res.data;
+      }
+      return res;
+    };
     overview.value = getData(overviewRes) || {};
     activity.value = getData(activityRes) || {};
     passRate.value = getData(passRateRes) || {};

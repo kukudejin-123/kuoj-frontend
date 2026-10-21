@@ -26,6 +26,7 @@
         <a-tag v-if="record.difficulty === 0" color="green">简单</a-tag>
         <a-tag v-else-if="record.difficulty === 1" color="orange">中等</a-tag>
         <a-tag v-else-if="record.difficulty === 2" color="red">困难</a-tag>
+        <a-tag v-else color="gray">未知</a-tag>
       </template>
       <template #reviewRemark="{ record }">
         <span v-if="record.reviewRemark">{{ record.reviewRemark }}</span>

@@ -133,16 +133,20 @@ const columns = [
 
 // 加载数据
 const loadData = async () => {
-  const params = {
-    ...searchParams.value,
-  };
-  const res = await listTeamByPageUsingPost(params);
-  if (res.data?.code === 0 || res.code === 0) {
-    const resData = res.data?.data || res.data;
-    dataList.value = resData?.records || [];
-    total.value = resData?.total || 0;
-  } else {
-    message.error("加载失败，" + (res.data?.message || res.message || ""));
+  try {
+    const params = {
+      ...searchParams.value,
+    };
+    const res = await listTeamByPageUsingPost(params);
+    if (res.data?.code === 0 || res.code === 0) {
+      const resData = res.data?.data ?? res.data;
+      dataList.value = resData?.records || [];
+      total.value = resData?.total || 0;
+    } else {
+      message.error("加载失败，" + (res.data?.message || res.message || ""));
+    }
+  } catch (e) {
+    message.error("加载失败");
   }
 };
 
