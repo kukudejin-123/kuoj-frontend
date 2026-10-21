@@ -109,8 +109,9 @@ const searchParams = ref<any>({
 // 计算通过率（返回 0-100 之间的值，a-progress 需要百分比）
 const calculateRate = (record: any) => {
   if (!record.submitNum || record.submitNum === 0) return 0;
-  const rate = record.acceptedNum / record.submitNum;
-  return Math.round(rate * 100);
+  const rate = (record.acceptedNum || 0) / record.submitNum;
+  // 上限保护，防止 acceptedNum > submitNum 时显示超过 100%
+  return Math.min(Math.round(rate * 100), 100);
 };
 
 // 加载所有标签
