@@ -2,7 +2,7 @@ import axios from "axios";
 import { Message } from "@arco-design/web-vue";
 
 const myAxios = axios.create({
-  baseURL: process.env.VUE_APP_API_BASE_URL || "http://localhost:8802/api",
+  baseURL: "/api",
   timeout: 60000,
   withCredentials: true,
 });

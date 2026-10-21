@@ -12,7 +12,7 @@
           disabled
         >
           <div class="title-bar">
-            <img class="logo" src="../assets/xue-logo.svg" />
+            <img class="logo" src="../assets/ku.svg" />
             <div class="title">酷OJ</div>
           </div>
         </a-menu-item>

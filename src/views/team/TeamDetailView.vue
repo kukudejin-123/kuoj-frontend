@@ -94,8 +94,8 @@
     <!-- 邀请成员弹窗 -->
     <a-modal v-model:visible="inviteModalVisible" title="邀请成员" @ok="handleInvite">
       <a-form :model="inviteForm">
-        <a-form-item label="用户ID">
-          <a-input v-model="inviteForm.userId" placeholder="请输入要邀请的用户ID" />
+        <a-form-item label="用户名">
+          <a-input v-model="inviteForm.userName" placeholder="请输入要邀请的用户名" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -133,7 +133,7 @@ const memberParams = ref({
 // 邀请弹窗
 const inviteModalVisible = ref(false);
 const inviteForm = ref({
-  userId: "",
+  userName: "",
 });
 
 // 成员表格列
@@ -244,19 +244,19 @@ const handleKick = async (member: any) => {
 // 显示邀请弹窗
 const showInviteModal = () => {
   inviteModalVisible.value = true;
-  inviteForm.value.userId = "";
+  inviteForm.value.userName = "";
 };
 
 // 邀请成员
 const handleInvite = async () => {
-  if (!team.value || !inviteForm.value.userId) {
-    message.error("请输入用户ID");
+  if (!team.value || !inviteForm.value.userName) {
+    message.error("请输入用户名");
     return;
   }
   try {
     const res = await inviteUserUsingPost({
       teamId: team.value.id,
-      userId: inviteForm.value.userId,  // 直接传字符串，避免大数精度丢失
+      userName: inviteForm.value.userName,
     });
     if (res.data?.code === 0 || res.code === 0) {
       message.success("邀请成功");

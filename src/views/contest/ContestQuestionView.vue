@@ -400,11 +400,21 @@ const loadAcceptedQuestions = async () => {
   if (!contestId.value) return;
   try {
     const res = await getUserAcceptedQuestionsUsingGet(contestId.value as any);
-    if (res.data?.code === 0 || res.code === 0) {
-      const ids = res.data?.data || res.data || [];
-      // 将 ids 转为字符串集合，避免大数字精度问题
-      acceptedQuestionIds.value = new Set(ids.map((id: any) => String(id)));
+    console.log("已通过题目返回数据:", res);
+    // 兼容多种返回格式
+    let ids: any[] = [];
+    if (res.data?.code === 0) {
+      ids = res.data.data || [];
+    } else if (res.code === 0) {
+      ids = res.data || [];
+    } else if (Array.isArray(res)) {
+      ids = res;
+    } else if (Array.isArray(res.data)) {
+      ids = res.data;
     }
+    console.log("解析后的ids:", ids);
+    // 将 ids 转为字符串集合，避免大数字精度问题
+    acceptedQuestionIds.value = new Set(ids.map((id: any) => String(id)));
   } catch (e) {
     console.error("加载已通过题目列表失败", e);
   }

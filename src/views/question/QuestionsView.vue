@@ -1,6 +1,9 @@
 <template>
   <div id="questionsView">
     <a-form :model="searchParams" layout="inline">
+      <a-form-item field="questionNumber" label="题号" style="min-width: 160px">
+        <a-input-number v-model="searchParams.questionNumber" placeholder="请输入题号" allow-clear :min="1000" />
+      </a-form-item>
       <a-form-item field="title" label="名称" style="min-width: 240px">
         <a-input v-model="searchParams.title" placeholder="请输入名称" allow-clear />
       </a-form-item>
@@ -14,6 +17,14 @@
       <a-form-item field="tags" label="标签" style="min-width: 200px">
         <a-select v-model="searchParams.tagInput" placeholder="请选择标签" allow-clear allow-search>
           <a-option v-for="tag in allTags" :key="tag" :value="tag">{{ tag }}</a-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item field="sortField" label="排序" style="min-width: 160px">
+        <a-select v-model="searchParams.sortField" placeholder="排序方式" allow-clear>
+          <a-option value="questionNumber">按题号</a-option>
+          <a-option value="submitNum">按提交数</a-option>
+          <a-option value="acceptedNum">按通过数</a-option>
+          <a-option value="createTime">按创建时间</a-option>
         </a-select>
       </a-form-item>
       <a-form-item>
@@ -85,9 +96,12 @@ const total = ref(0);
 const allTags = ref<string[]>([]);
 // 搜索参数
 const searchParams = ref<any>({
+  questionNumber: undefined,
   title: "",
   tagInput: "",
   difficulty: undefined,
+  sortField: undefined,
+  sortOrder: "descend",
   pageSize: 8,
   current: 1,
 });
@@ -125,6 +139,10 @@ const loadData = async () => {
     pageSize: searchParams.value.pageSize,
     current: searchParams.value.current,
   };
+  // 添加题号筛选
+  if (searchParams.value.questionNumber !== undefined && searchParams.value.questionNumber !== null) {
+    params.questionNumber = searchParams.value.questionNumber;
+  }
   // 添加难度筛选
   if (searchParams.value.difficulty !== undefined && searchParams.value.difficulty !== null) {
     params.difficulty = searchParams.value.difficulty;
@@ -132,6 +150,11 @@ const loadData = async () => {
   // 添加标签筛选
   if (searchParams.value.tagInput) {
     params.tags = [searchParams.value.tagInput];
+  }
+  // 添加排序
+  if (searchParams.value.sortField) {
+    params.sortField = searchParams.value.sortField;
+    params.sortOrder = searchParams.value.sortOrder;
   }
 
   const res = await listQuestionVoByPageUsingPost(params);
@@ -220,9 +243,12 @@ const doSubmit = () => {
  */
 const doClear = () => {
   searchParams.value = {
+    questionNumber: undefined,
     title: "",
     tagInput: "",
     difficulty: undefined,
+    sortField: undefined,
+    sortOrder: "descend",
     pageSize: 8,
     current: 1,
   };

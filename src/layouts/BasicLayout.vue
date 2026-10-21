@@ -8,7 +8,15 @@
         <router-view />
       </a-layout-content>
       <a-layout-footer class="footer">
-        <a target="_blank"> 作者：酷酷的金 </a>
+        <a target="_blank" rel="noopener noreferrer"> 作者：酷酷的金 </a>
+        <span class="divider">|</span>
+        <a
+          href="https://beian.miit.gov.cn/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          浙ICP备2026046474号-1
+        </a>
       </a-layout-footer>
     </a-layout>
   </div>
@@ -40,6 +48,11 @@
   left: 0;
   right: 0;
   text-align: center;
+}
+
+#basicLayout .divider {
+  margin: 0 8px;
+  color: #999;
 }
 </style>
 <script>

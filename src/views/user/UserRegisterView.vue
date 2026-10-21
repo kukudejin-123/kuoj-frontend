@@ -11,6 +11,9 @@
       <a-form-item field="userAccount" label="账号">
         <a-input v-model="form.userAccount" placeholder="请输入账号" />
       </a-form-item>
+      <a-form-item field="userName" label="用户名">
+        <a-input v-model="form.userName" placeholder="请输入用户名（全局唯一）" />
+      </a-form-item>
       <a-form-item field="userPassword" tooltip="密码不小于 8 位" label="密码">
         <a-input-password
           v-model="form.userPassword"
@@ -58,6 +61,7 @@ const router = useRouter();
 
 const form = reactive({
   userAccount: "",
+  userName: "",
   userPassword: "",
   checkPassword: "",
 } as UserRegisterRequest);

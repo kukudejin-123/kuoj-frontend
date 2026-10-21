@@ -583,6 +583,12 @@ declare namespace API {
     sortField?: string;
     sortOrder?: string;
     userId?: number;
+    title?: string;
+    tags?: string[];
+    difficulty?: number;
+    questionNumber?: number;
+    minAcceptRate?: number;
+    maxAcceptRate?: number;
   };
 
   type QuestionUpdateRequest = {
@@ -598,6 +604,16 @@ declare namespace API {
     updateTime?: string;
     user?: UserVO;
     userId?: number;
+    questionNumber?: number;
+    title?: string;
+    content?: string;
+    tags?: string[];
+    submitNum?: number;
+    acceptedNum?: number;
+    difficulty?: number;
+    isPublic?: number;
+    reviewStatus?: number;
+    reviewRemark?: string;
   };
 
   type ReviewRequest = {
@@ -796,6 +812,7 @@ declare namespace API {
   type UserRegisterRequest = {
     checkPassword?: string;
     userAccount?: string;
+    userName?: string;
     userPassword?: string;
   };
 
@@ -883,6 +900,7 @@ declare namespace API {
   type TeamInviteRequest = {
     teamId?: number;
     userId?: string;  // 改为 string 类型，避免大数精度丢失
+    userName?: string;  // 用户名（优先使用）
   };
 
   type TeamKickRequest = {
@@ -993,6 +1011,8 @@ declare namespace API {
     startTime?: string;
     endTime?: string;
     contestType?: number;
+    visibility?: number;
+    allowedTeamIds?: string;
     questionIds?: number[];
   };
 
@@ -1037,6 +1057,8 @@ declare namespace API {
     startTime?: string;
     endTime?: string;
     contestType?: number;
+    visibility?: number;
+    allowedTeamIds?: string;
     status?: number;
     participantCount?: number;
     questionCount?: number;
