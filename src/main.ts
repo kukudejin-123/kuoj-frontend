@@ -10,12 +10,20 @@ import "bytemd/dist/index.css";
 
 // 修复 Arco Design Vue 的 ResizeObserver 已知 bug
 // 该错误会导致 Vue 应用崩溃，导航栏消失
-const resizeObserverErrHandler = (e: ErrorEvent) => {
-  if (e.message === "ResizeObserver loop completed with undelivered notifications.") {
-    e.stopImmediatePropagation();
-    e.preventDefault();
+// 直接 patch ResizeObserver，吞掉 "loop completed with undelivered notifications" 错误
+const OriginalResizeObserver = window.ResizeObserver;
+window.ResizeObserver = class extends OriginalResizeObserver {
+  constructor(callback: ResizeObserverCallback) {
+    super((entries, observer) => {
+      requestAnimationFrame(() => {
+        try {
+          callback(entries, observer);
+        } catch (e) {
+          // 吞掉 ResizeObserver loop 错误
+        }
+      });
+    });
   }
-};
-window.addEventListener("error", resizeObserverErrHandler, true);
+} as any;
 
 createApp(App).use(ArcoVue).use(store).use(router).mount("#app");
