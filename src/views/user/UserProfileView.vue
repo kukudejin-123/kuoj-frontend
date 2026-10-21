@@ -40,27 +40,26 @@
         <a-row :gutter="[16, 16]" style="margin-bottom: 24px;">
           <a-col :span="8">
             <a-card>
-              <a-statistic title="提交次数" :value="String(statistics.submitCount)">
-                <template #suffix>
-                  <span style="font-size: 14px; color: #999;">次</span>
-                </template>
-              </a-statistic>
+              <div style="color: #86909c; font-size: 14px; margin-bottom: 8px;">提交次数</div>
+              <div style="font-size: 24px; font-weight: 500;">
+                {{ statistics.submitCount }} <span style="font-size: 14px; color: #999;">次</span>
+              </div>
             </a-card>
           </a-col>
           <a-col :span="8">
             <a-card>
-              <a-statistic title="通过次数" :value="String(statistics.acceptCount)">
-                <template #suffix>
-                  <span style="font-size: 14px; color: #999;">次</span>
-                </template>
-              </a-statistic>
+              <div style="color: #86909c; font-size: 14px; margin-bottom: 8px;">通过次数</div>
+              <div style="font-size: 24px; font-weight: 500;">
+                {{ statistics.acceptCount }} <span style="font-size: 14px; color: #999;">次</span>
+              </div>
             </a-card>
           </a-col>
           <a-col :span="8">
             <a-card>
-              <a-statistic title="通过率" :value="statistics.acceptRate.toFixed(1)">
-                <template #suffix>%</template>
-              </a-statistic>
+              <div style="color: #86909c; font-size: 14px; margin-bottom: 8px;">通过率</div>
+              <div style="font-size: 24px; font-weight: 500;">
+                {{ statistics.acceptRate.toFixed(1) }}%
+              </div>
             </a-card>
           </a-col>
         </a-row>

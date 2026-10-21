@@ -5,30 +5,54 @@
     <!-- 总览卡片 -->
     <a-row :gutter="16" style="margin-bottom: 16px;">
       <a-col :span="6">
-        <a-statistic title="总用户数" :value="overview.totalUsers || 0" />
+        <a-card>
+          <div class="stat-label">总用户数</div>
+          <div class="stat-value">{{ overview.totalUsers || 0 }}</div>
+        </a-card>
       </a-col>
       <a-col :span="6">
-        <a-statistic title="活跃用户" :value="overview.activeUsers || 0" />
+        <a-card>
+          <div class="stat-label">活跃用户</div>
+          <div class="stat-value">{{ overview.activeUsers || 0 }}</div>
+        </a-card>
       </a-col>
       <a-col :span="6">
-        <a-statistic title="总题目数" :value="overview.totalQuestions || 0" />
+        <a-card>
+          <div class="stat-label">总题目数</div>
+          <div class="stat-value">{{ overview.totalQuestions || 0 }}</div>
+        </a-card>
       </a-col>
       <a-col :span="6">
-        <a-statistic title="待审核题目" :value="overview.pendingReview || 0" />
+        <a-card>
+          <div class="stat-label">待审核题目</div>
+          <div class="stat-value">{{ overview.pendingReview || 0 }}</div>
+        </a-card>
       </a-col>
     </a-row>
     <a-row :gutter="16" style="margin-bottom: 24px;">
       <a-col :span="6">
-        <a-statistic title="总提交数" :value="overview.totalSubmissions || 0" />
+        <a-card>
+          <div class="stat-label">总提交数</div>
+          <div class="stat-value">{{ overview.totalSubmissions || 0 }}</div>
+        </a-card>
       </a-col>
       <a-col :span="6">
-        <a-statistic title="通过提交数" :value="overview.acceptedSubmissions || 0" />
+        <a-card>
+          <div class="stat-label">通过提交数</div>
+          <div class="stat-value">{{ overview.acceptedSubmissions || 0 }}</div>
+        </a-card>
       </a-col>
       <a-col :span="6">
-        <a-statistic title="总通过率" :value="overview.acceptRate || 0" suffix="%" />
+        <a-card>
+          <div class="stat-label">总通过率</div>
+          <div class="stat-value">{{ overview.acceptRate || 0 }}%</div>
+        </a-card>
       </a-col>
       <a-col :span="6">
-        <a-statistic title="总比赛数" :value="overview.totalContests || 0" />
+        <a-card>
+          <div class="stat-label">总比赛数</div>
+          <div class="stat-value">{{ overview.totalContests || 0 }}</div>
+        </a-card>
       </a-col>
     </a-row>
 
@@ -208,5 +232,17 @@ onMounted(() => {
 #statisticsView {
   max-width: 1280px;
   margin: 0 auto;
+}
+
+.stat-label {
+  color: #86909c;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 500;
+  color: #1d2129;
 }
 </style>
