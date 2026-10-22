@@ -17,15 +17,15 @@
           </a-radio-group>
         </a-form-item>
 
-        <!-- 可见性：仅管理员可见此选项，队长创建时自动为私有 -->
-        <a-form-item v-if="isAdmin" label="可见性" field="visibility">
-          <a-radio-group v-model="form.visibility">
+        <!-- 可见性：队长创建时固定为私有（仅展示，不可修改） -->
+        <a-form-item label="可见性">
+          <a-radio-group v-if="isAdmin" v-model="form.visibility">
             <a-radio :value="0">公开（所有人都能参加）</a-radio>
             <a-radio :value="1">私有（仅指定团队可参加）</a-radio>
           </a-radio-group>
-        </a-form-item>
-        <a-form-item v-if="!isAdmin" label="可见性">
-          <a-alert type="info" message="队长创建的比赛为私有比赛，仅本团队成员可参加" />
+          <a-radio-group v-else :model-value="1" disabled>
+            <a-radio :value="1">私有（仅本团队成员可参加）</a-radio>
+          </a-radio-group>
         </a-form-item>
 
         <!-- 私有比赛时选择允许的团队 -->
