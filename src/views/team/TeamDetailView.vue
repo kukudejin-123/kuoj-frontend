@@ -79,21 +79,12 @@
               移除
             </a-button>
             <a-button
-              v-if="team?.userRole === 2 && record.userRole !== 2 && String(team?.userId) !== String(record.userId)"
+              v-if="(team?.userRole === 2 || isAdmin) && record.userRole !== 2 && String(team?.userId) !== String(record.userId)"
               type="text"
               size="small"
               @click="handleTransfer(record)"
             >
               转让队长
-            </a-button>
-            <!-- 管理员可以指定任意成员为队长 -->
-            <a-button
-              v-if="isAdmin && record.userRole !== 2"
-              type="text"
-              size="small"
-              @click="handleSetCaptain(record)"
-            >
-              指定队长
             </a-button>
           </a-space>
         </template>
@@ -287,16 +278,20 @@ const handleInvite = async () => {
   }
 };
 
-// 转让队长
+// 转让队长（队长本人或管理员都可操作）
 const handleTransfer = async (member: any) => {
   if (!team.value) return;
   try {
-    const res = await transferCaptainUsingPost({
+    // 管理员走 set-captain 接口，队长本人走 transfer 接口
+    const apiFunc = isAdmin.value && team.value.userRole !== 2
+      ? setCaptainUsingPost
+      : transferCaptainUsingPost;
+    const res = await apiFunc({
       teamId: team.value.id,
-      userId: member.userId,
+      userId: String(member.userId),
     });
     if (res.data?.code === 0 || res.code === 0) {
-      message.success("转让成功，您已成为普通成员");
+      message.success("转让成功");
       loadTeam();
       loadMembers();
     } else {
@@ -304,26 +299,6 @@ const handleTransfer = async (member: any) => {
     }
   } catch (e) {
     message.error("转让失败");
-  }
-};
-
-// 管理员指定队长
-const handleSetCaptain = async (member: any) => {
-  if (!team.value) return;
-  try {
-    const res = await setCaptainUsingPost({
-      teamId: team.value.id,
-      userId: String(member.userId),
-    });
-    if (res.data?.code === 0 || res.code === 0) {
-      message.success("指定队长成功");
-      loadTeam();
-      loadMembers();
-    } else {
-      message.error("操作失败，" + (res.data?.message || res.message || ""));
-    }
-  } catch (e) {
-    message.error("操作失败");
   }
 };
 
