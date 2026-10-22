@@ -182,6 +182,11 @@ const doUpdate = (question: Question) => {
 </script>
 
 <style scoped>
+#manageQuestionView {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
 #manageQuestionView .ellipsed-column {
   width: 150px;
   height: 50px;

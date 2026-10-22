@@ -222,5 +222,7 @@ onMounted(() => {
 <style scoped>
 #rankingView {
   padding: 20px;
+  max-width: 1280px;
+  margin: 0 auto;
 }
 </style>

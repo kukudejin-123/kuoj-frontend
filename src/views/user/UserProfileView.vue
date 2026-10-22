@@ -356,8 +356,7 @@ onMounted(async () => {
 
 <style scoped>
 #userProfileView {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 24px;
 }
 </style>

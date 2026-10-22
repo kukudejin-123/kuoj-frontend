@@ -259,5 +259,7 @@ onMounted(() => {
 <style scoped>
 #contestsView {
   padding: 20px;
+  max-width: 1280px;
+  margin: 0 auto;
 }
 </style>

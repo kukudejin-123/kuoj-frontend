@@ -183,9 +183,8 @@ onMounted(() => {
 
 <style scoped>
 #submitCodeView {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 20px;
 }
 
 .code-section {
@@ -216,7 +215,6 @@ onMounted(() => {
 .code-block {
   background: #1e1e1e;
   color: #d4d4d4;
-  padding: 20px;
   border-radius: 8px;
   overflow-x: auto;
   font-family: "Consolas", "Monaco", "Courier New", monospace;
