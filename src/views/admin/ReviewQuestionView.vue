@@ -58,6 +58,12 @@
         <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto; max-height: 200px;">{{ formatJson(currentQuestion.judgeCase) }}</pre>
         <h4 style="margin-top: 16px;">判题配置</h4>
         <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto; max-height: 200px;">{{ formatJson(currentQuestion.judgeConfig) }}</pre>
+        <a-divider />
+        <!-- 审核操作按钮 -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <a-button status="danger" @click="handleRejectFromDetail">拒绝</a-button>
+          <a-button type="primary" status="success" @click="handleApproveFromDetail">同意</a-button>
+        </div>
       </template>
     </a-modal>
 
@@ -176,7 +182,7 @@ const handleReview = async (record: any, status: number) => {
       reviewStatus: status,
     });
     if (res.data?.code === 0 || res.code === 0) {
-      message.success("审核通过");
+      message.success(status === 1 ? "审核通过" : "已拒绝");
       loadData();
     } else {
       message.error("操作失败，" + (res.data?.message || res.message || ""));
@@ -184,6 +190,34 @@ const handleReview = async (record: any, status: number) => {
   } catch (e) {
     message.error("操作失败");
   }
+};
+
+// 从详情弹窗中同意（关闭弹窗并刷新列表）
+const handleApproveFromDetail = async () => {
+  if (!currentQuestion.value) return;
+  try {
+    const res = await reviewQuestionUsingPost({
+      id: currentQuestion.value.id,
+      reviewStatus: 1,
+    });
+    if (res.data?.code === 0 || res.code === 0) {
+      message.success("审核通过");
+      detailVisible.value = false;
+      loadData();
+    } else {
+      message.error("操作失败，" + (res.data?.message || res.message || ""));
+    }
+  } catch (e) {
+    message.error("操作失败");
+  }
+};
+
+// 从详情弹窗中拒绝（打开拒绝原因弹窗）
+const handleRejectFromDetail = () => {
+  if (!currentQuestion.value) return;
+  rejectTarget.value = currentQuestion.value;
+  rejectRemark.value = "";
+  rejectVisible.value = true;
 };
 
 const handleReject = (record: any) => {
@@ -203,6 +237,7 @@ const confirmReject = async () => {
     if (res.data?.code === 0 || res.code === 0) {
       message.success("已拒绝");
       rejectVisible.value = false;
+      detailVisible.value = false;
       loadData();
     } else {
       message.error("操作失败，" + (res.data?.message || res.message || ""));
