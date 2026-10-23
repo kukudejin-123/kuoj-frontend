@@ -109,7 +109,7 @@ export const routes: Array<RouteRecordRaw> = [
   },
   {
     path: "/add/question",
-    name: "创建题目",
+    name: "题目测试",
     component: AddQuestionView,
     meta: {
       access: ACCESS_ENUM.ADMIN,

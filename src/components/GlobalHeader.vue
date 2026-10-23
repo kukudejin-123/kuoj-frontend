@@ -52,22 +52,50 @@ import ACCESS_ENUM from "@/access/accessEnum";
 const router = useRouter();
 const store = useStore();
 
+// 当前是否是管理员
+const isAdmin = computed(() => {
+  return store.state.user.loginUser?.userRole === ACCESS_ENUM.ADMIN;
+});
+
+// 管理员专属的菜单名映射（key 为路由 path）
+// 只改与用户端重名的菜单，管理员专属菜单保持原名
+const ADMIN_MENU_NAME_MAP: Record<string, string> = {
+  "/question_submit": "提交记录",
+  "/question/my": "出题审核",
+};
+
+// 管理员隐藏的菜单（key 为路由 path）
+// 这些菜单对管理员没有意义，避免与管理端专属功能重复
+const ADMIN_HIDDEN_MENUS = ["/questions"];
+
 // 展示在菜单的路由数组
 const visibleRoutes = computed(() => {
   const loginUser = store.state.user.loginUser;
-  return routes.filter((item, index) => {
-    if (item.meta?.hideInMenu) {
-      return false;
-    }
-    // 根据权限过滤菜单
-    const needAccess = (item.meta?.access as string) ?? ACCESS_ENUM.NOT_LOGIN;
-    // 如果需要管理员权限，只有管理员才能看到
-    if (needAccess === ACCESS_ENUM.ADMIN) {
-      return loginUser?.userRole === ACCESS_ENUM.ADMIN;
-    }
-    // 其他菜单正常显示
-    return true;
-  });
+  return routes
+    .filter((item, index) => {
+      if (item.meta?.hideInMenu) {
+        return false;
+      }
+      // 管理员隐藏特定菜单
+      if (isAdmin.value && ADMIN_HIDDEN_MENUS.includes(item.path)) {
+        return false;
+      }
+      // 根据权限过滤菜单
+      const needAccess = (item.meta?.access as string) ?? ACCESS_ENUM.NOT_LOGIN;
+      // 如果需要管理员权限，只有管理员才能看到
+      if (needAccess === ACCESS_ENUM.ADMIN) {
+        return loginUser?.userRole === ACCESS_ENUM.ADMIN;
+      }
+      // 其他菜单正常显示
+      return true;
+    })
+    .map((item) => {
+      // 管理员登录时，替换与用户端重名的菜单项名称
+      if (isAdmin.value && ADMIN_MENU_NAME_MAP[item.path]) {
+        return { ...item, name: ADMIN_MENU_NAME_MAP[item.path] };
+      }
+      return item;
+    });
 });
 
 // 默认主页
