@@ -60,13 +60,13 @@ const isAdmin = computed(() => {
 // 管理员专属的菜单名映射（key 为路由 path）
 // 只改与用户端重名的菜单，管理员专属菜单保持原名
 const ADMIN_MENU_NAME_MAP: Record<string, string> = {
+  "/questions": "题目测试",
   "/question_submit": "提交记录",
   "/question/my": "出题审核",
 };
 
 // 管理员隐藏的菜单（key 为路由 path）
-// 这些菜单对管理员没有意义，避免与管理端专属功能重复
-const ADMIN_HIDDEN_MENUS = ["/questions"];
+const ADMIN_HIDDEN_MENUS: string[] = [];
 
 // 展示在菜单的路由数组
 const visibleRoutes = computed(() => {
