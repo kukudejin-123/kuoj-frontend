@@ -62,11 +62,11 @@ const isAdmin = computed(() => {
 const ADMIN_MENU_NAME_MAP: Record<string, string> = {
   "/questions": "题目测试",
   "/question_submit": "提交记录",
-  "/question/my": "出题审核",
 };
 
 // 管理员隐藏的菜单（key 为路由 path）
-const ADMIN_HIDDEN_MENUS: string[] = [];
+// 「我的出题」只显示当前登录用户自己提交的题目，管理员不出题，且审核入口已由「题目审核」承担
+const ADMIN_HIDDEN_MENUS: string[] = ["/question/my"];
 
 // 展示在菜单的路由数组
 const visibleRoutes = computed(() => {
